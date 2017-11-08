@@ -66,22 +66,6 @@ class MTPGadget(mtp.Gadget):
         self.remove_gadget()
 
 
-class OutputRedirect(object):
-    def __init__(self, dev):
-        self.dev = dev
-
-    def __enter__(self):
-        self.oldfds = [os.dup(n) for n in range(3)]
-        fd = os.open(self.dev, os.O_RDWR)
-        [os.dup2(fd, n) for n in range(3)]
-        os.close(fd)
-        return self
-
-    def __exit__(self, t, value, traceback):
-        [os.dup2(self.oldfds[n], n) for n in range(3)]
-
-
-
 
 if __name__ == '__main__':
 
