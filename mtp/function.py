@@ -1,9 +1,11 @@
 from __future__ import print_function
 
+import select
+
 import functionfs
 import functionfs.ch9
 
-from .thread import MTPThread
+from .responder import MTPResponder
 
 FS_BULK_MAX_PACKET_SIZE = 64
 HS_BULK_MAX_PACKET_SIZE = 512
@@ -83,20 +85,24 @@ class MTPFunction(functionfs.Function):
         )
 
         assert len(self._ep_list) == 4
-        thread_list = self.__thread_list = []
-        thread_list.append(
-            MTPThread(
-                name='MTPThread',
-                outep=self._ep_list[2],
-                inep=self._ep_list[1],
-                intep=self._ep_list[3],
-            )
+        self.responder = MTPResponder(
+            outep=self._ep_list[2],
+            inep=self._ep_list[1],
+            intep=self._ep_list[3],
         )
+
+    def processEventsForever(self):
+        while True:
+            (r, w, x) = select.select([self._ep_list[0], self._ep_list[2]], [], [])
+            print (r)
+            for ep in r:
+                if self._ep_list[0] in r:
+                    self.processEvents()
+                elif self._ep_list[2] in r:
+                    self.responder.run()
 
     def onEnable(self):
         print('functionfs: ENABLE')
-        for thread in self.__thread_list:
-            thread.start()
 
     def onDisable(self):
         print('functionfs: DISABLE')
