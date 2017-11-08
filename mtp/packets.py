@@ -7,7 +7,7 @@ assert ctypes.sizeof(le16) == 2
 le32 = ctypes.c_uint
 assert ctypes.sizeof(le32) == 4
 
-from constants import *
+from .constants import *
 
 class MTPHeader(ctypes.LittleEndianStructure):
     _pack_ = 1

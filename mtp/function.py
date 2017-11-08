@@ -1,7 +1,9 @@
+from __future__ import print_function
+
 import functionfs
 import functionfs.ch9
 
-from mtpthread import MTPThread
+from .thread import MTPThread
 
 FS_BULK_MAX_PACKET_SIZE = 64
 HS_BULK_MAX_PACKET_SIZE = 512
@@ -74,7 +76,7 @@ class MTPFunction(functionfs.Function):
             fs_list=fs_list,
             hs_list=hs_list,
             lang_dict={
-                0x0409: [x.decode('utf-8') for x in (
+                0x0409: [x.encode('utf-8') for x in (
                     'MTP',
                 )],
             },
@@ -92,24 +94,24 @@ class MTPFunction(functionfs.Function):
         )
 
     def onEnable(self):
-        print 'functionfs: ENABLE'
+        print('functionfs: ENABLE')
         for thread in self.__thread_list:
             thread.start()
 
     def onDisable(self):
-        print 'functionfs: DISABLE'
+        print('functionfs: DISABLE')
 
     def onBind(self):
-        print 'functionfs: BIND'
+        print('functionfs: BIND')
 
     def onUnbind(self):
-        print 'functionfs: UNBIND'
+        print('functionfs: UNBIND')
 
     def onSuspend(self):
-        print 'functionfs: SUSPEND'
+        print('functionfs: SUSPEND')
 
     def onResume(self):
-        print 'functionfs: RESUME'
+        print('functionfs: RESUME')
 
     def onSetup(self, request_type, request, value, index, length):
         super(MTPFunction, self).onSetup(

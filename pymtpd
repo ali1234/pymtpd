@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import mtp
 
@@ -9,7 +9,7 @@ def main():
         f.write('dummy_udc.0')
         f.close()
 
-        print 'Servicing functionfs events forever...'
+        print('Servicing functionfs events forever...')
         try:
             function.processEventsForever()
         except KeyboardInterrupt:
