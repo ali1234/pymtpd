@@ -21,14 +21,10 @@ After you built and installed dummy_hcd, add to /etc/modules:
     dummy_hcd
     libcomposite
 
-2. As root, run configure.py
-
-This creates the gadget configuration. It will wait forever. If you
-interrupt it with ctrl-c, it will try to remove the gadget config.
-
-It is also responsible for mounting the mtp functionfs.
-
 3. As root, run ./pymtpd
+
+It configures all the configfs stuff and mounts the functionfs.
+Then it starts handling MTP requests.
 
 4. As root, run mtp-detect from mtp-tools package.
 
