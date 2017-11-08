@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+
+import mtp
+
+def main():
+    with mtp.MTPFunction('/dev/mtp') as function:
+
+        f = open('/sys/kernel/config/usb_gadget/g1/UDC', 'w')
+        f.write('dummy_udc.0')
+        f.close()
+
+        print 'Servicing functionfs events forever...'
+        try:
+            function.processEventsForever()
+        except KeyboardInterrupt:
+            pass
+
+if __name__ == '__main__':
+    main()
