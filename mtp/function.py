@@ -78,9 +78,9 @@ class MTPFunction(functionfs.Function):
             fs_list=fs_list,
             hs_list=hs_list,
             lang_dict={
-                0x0409: [x.encode('utf-8') for x in (
-                    'MTP',
-                )],
+                0x0409: [
+                    u'MTP',
+                ],
             },
         )
 
