@@ -94,9 +94,8 @@ class MTPFunction(functionfs.Function):
     def processEventsForever(self):
         while True:
             (r, w, x) = select.select([self._ep_list[0], self._ep_list[2]], [], [])
-            for ep in r:
-                if self._ep_list[0] in r:
-                    self.processEvents()
-                elif self._ep_list[2] in r:
-                    self.responder.run()
+            if self._ep_list[0] in r:
+                self.processEvents()
+            if self._ep_list[2] in r:
+                self.responder.run()
 
