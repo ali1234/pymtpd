@@ -10,7 +10,11 @@ class Directory(object):
             with open(os.path.join(path, key), 'w') as k:
                 k.write(value)
         elif type(value) == Directory:
-            os.symlink(object.__getattribute__(value, 'path'), os.path.join(path, key))
+            try:
+                os.symlink(object.__getattribute__(value, 'path'), os.path.join(path, key))
+            except FileExistsError:
+                os.unlink(os.path.join(path, key))
+                os.symlink(object.__getattribute__(value, 'path'), os.path.join(path, key))
         elif value is None:
             os.makedirs(os.path.join(path, key))
 
