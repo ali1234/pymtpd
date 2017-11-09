@@ -84,18 +84,22 @@ class MTPFunction(functionfs.Function):
             },
         )
 
+        self.inep = self._ep_list[1]
+        self.outep = self._ep_list[2]
+        self.intep = self._ep_list[3]
+
         assert len(self._ep_list) == 4
         self.responder = MTPResponder(
-            outep=self._ep_list[2],
-            inep=self._ep_list[1],
-            intep=self._ep_list[3],
+            outep=self.outep,
+            inep=self.inep,
+            intep=self.intep,
         )
 
     def processEventsForever(self):
         while True:
-            (r, w, x) = select.select([self._ep_list[0], self._ep_list[2]], [], [])
-            if self._ep_list[0] in r:
+            (r, w, x) = select.select([self.ep0, self.outep], [], [])
+            if self.ep0 in r:
                 self.processEvents()
-            if self._ep_list[2] in r:
-                self.responder.run()
+            if self.outep in r:
+                self.responder.handleOneOperation()
 
