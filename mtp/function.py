@@ -100,26 +100,3 @@ class MTPFunction(functionfs.Function):
                 elif self._ep_list[2] in r:
                     self.responder.run()
 
-    def onEnable(self):
-        print('functionfs: ENABLE')
-
-    def onDisable(self):
-        print('functionfs: DISABLE')
-
-    def onBind(self):
-        print('functionfs: BIND')
-
-    def onUnbind(self):
-        print('functionfs: UNBIND')
-
-    def onSuspend(self):
-        print('functionfs: SUSPEND')
-
-    def onResume(self):
-        print('functionfs: RESUME')
-
-    def onSetup(self, request_type, request, value, index, length):
-        super(MTPFunction, self).onSetup(
-            request_type, request, value, index, length,
-        )
-
