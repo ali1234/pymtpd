@@ -29,11 +29,11 @@ mtp_response = Struct(
 )
 
 mtp_data = Struct(
-    'length' / Rebuild(Int32ul, len_(this.data)),
+    'length' / Rebuild(Int32ul, 12+len_(this.data)),
     'type' / Const(container_type, 'DATA'),
-    'code' / Default(Int32ul, 0),
-    'tx_id', Int32ul,
-    'data' / Byte[this.count],
+    'code' / operation_code,
+    'tx_id' / Int32ul,
+    'data' / GreedyBytes,
 )
 
 mtp_event = Struct(
@@ -41,5 +41,14 @@ mtp_event = Struct(
     'type' / Const(container_type, 'EVENT'),
     'code' / event_code,
     'tx_id' / Int32ul,
-    'parameters' / Default(Array(3, Int32ul), [0,0,0]),
+    'p1' / Default(Int32ul, 0),
+    'p2' / Default(Int32ul, 0),
+    'p3' / Default(Int32ul, 0),
 )
+
+if __name__ == '__main__':
+    from binascii import hexlify
+    b = mtp_data.build(dict(data=b'12345', tx_id=1))
+    p = mtp_data.parse(b)
+    print(p)
+    print(hexlify(b))
