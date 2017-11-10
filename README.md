@@ -31,7 +31,7 @@ want them installed. It works either way.
 
 Note: functionfs does not support py3 yet, clone this repo:
 
-    git clone -b pycompat git://github.com/ali1234/python-functionfs
+    git clone -b py3compat git://github.com/ali1234/python-functionfs
 
 and run this in the root of the repo:
 
