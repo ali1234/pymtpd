@@ -4,8 +4,7 @@ import errno
 import binascii
 import queue
 
-from .packets import parse, MTPResponse
-from .constants import *
+from .packets import mtp_command, mtp_response
 
 class MTPResponder(object):
 
@@ -19,6 +18,8 @@ class MTPResponder(object):
     def handleOneOperation(self):
         buf = bytearray(512)
         self.outep.readinto(buf)
-        p = parse(buf)
-        print(p.length, p.type, hex(p.code), p.transaction_id)
-        self.inep.write(MTPResponse(code=MTP_RESPONSE_OK, transaction_id=p.transaction_id))
+        p = mtp_command.parse(buf)
+        print(p)
+        r = mtp_response.build(dict(code='OK', tx_id=p.tx_id))
+        print(mtp_response.parse(r))
+        self.inep.write(r)
