@@ -20,7 +20,8 @@ FormatType = EnumList(Int16ul, format_types)
 ObjectPropertyCode = EnumList(Int16ul, object_property_codes)
 
 DevicePropertyCode = EnumList(Int16ul, device_property_codes)
-DevicePropertyCode.formats = l2d(device_property_codes, 0, 2, lambda x: Const(DataType, x))
+DevicePropertyCode.consttypes = l2d(device_property_codes, 0, 2, lambda x: Const(DataType, x))
+DevicePropertyCode.formats = l2d(device_property_codes, 0, 2, lambda x: DataType.formats[x])
 
 OperationCode = EnumList(Int16ul, operation_codes)
 
@@ -54,10 +55,51 @@ MTPDeviceInfo = Struct(
 
 DevicePropertyDesc = Struct(
     'code' / DevicePropertyCode,
-    'type' / Switch(this.code, DevicePropertyCode.formats),
+    'type' / Switch(this.code, DevicePropertyCode.consttypes),
     'writable' / Default(Byte, False),
-    'default' / Switch(this.type, DataType.formats),
-    'current' / Switch(this.type, DataType.formats),
+    'default' / Switch(this.code, DevicePropertyCode.formats),
+    'current' / Switch(this.code, DevicePropertyCode.formats),
     'form' / Const(Byte, 0),
 )
 
+class DeviceProperties(object):
+    class DeviceProperty(object):
+        def __init__(self, code, default, writable):
+            self.__code = code
+            self.__default = default
+            self.__current = default
+            self.__writable = writable
+
+        def set(self, value):
+            self.__current = value
+
+        def build(self):
+            return DevicePropertyCode.formats[self.__code].build(self.__current)
+
+        def builddesc(self):
+            return DevicePropertyDesc.build(dict(
+                code = self.__code,
+                writable = self.__writable,
+                default = self.__default,
+                current = self.__current,
+            ))
+
+    def __init__(self):
+        self.props = {}
+
+    def add(self, code, default, writable=False):
+        self.props[code] = self.DeviceProperty(code, default, writable)
+
+    def __getitem__(self, code):
+        return self.props[code]
+
+if __name__ == '__main__':
+
+    import code
+    code.interact(local=locals())
+
+    p = DeviceProperties()
+    p.add('DEVICE_FRIENDLY_NAME', 'Yolo')
+    p['DEVICE_FRIENDLY_NAME'].set('Swaggity')
+
+    print(p['DEVICE_FRIENDLY_NAME'].builddesc())
