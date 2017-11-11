@@ -38,8 +38,6 @@ class MTPResponder(object):
         self.outep = outep
         self.inep = inep
         self.intep = intep
-        self.responses = queue.Queue()
-        self.events = queue.Queue()
         self.session_id = None
 
 
