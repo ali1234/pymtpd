@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 from .packets import MTPCommand, MTPResponse, MTPData
-from .types import MTPDeviceInfo
+from .types import *
 
 
 operations = {}
@@ -39,7 +39,10 @@ class MTPResponder(object):
         self.inep = inep
         self.intep = intep
         self.session_id = None
+        self.properties = DeviceProperties()
 
+        self.properties.add('DEVICE_FRIENDLY_NAME', 'Whizzle')
+        self.properties.add('SYNCHRONIZATION_PARTNER', '', True)
 
     def datastage(self, data):
         print(MTPData.parse(data))
@@ -50,6 +53,7 @@ class MTPResponder(object):
     @operation
     def GET_DEVICE_INFO(self, p):
         di = MTPDeviceInfo.build(dict(
+                 device_properties_supported=list(self.properties.props.keys()),
                  operations_supported=list(operations.keys()),
              ))
         data = MTPData.build(dict(code=p.code, tx_id=p.tx_id, data=di))
@@ -71,6 +75,16 @@ class MTPResponder(object):
         self.inep.write(MTPResponse.build(dict(code='OK', tx_id=p.tx_id)))
 
 
+
+    @operation
+    @session
+    def GET_DEVICE_PROP_VALUE(self, p):
+        di = self.properties[DevicePropertyCode.decoding[p.p1]].build()
+        data = MTPData.build(dict(code=p.code, tx_id=p.tx_id, data=di))
+        self.datastage(data)
+        self.inep.write(MTPResponse.build(dict(code='OK', tx_id=p.tx_id)))
+
+
     def handleOneOperation(self):
         buf = bytearray(512)
         self.outep.readinto(buf)
@@ -78,6 +92,9 @@ class MTPResponder(object):
         print(p)
         try:
             #getattr(self, p.code)(p)
-            operations[p.code](self, p)
+            f = operations[p.code]
         except KeyError:
             self.inep.write(MTPResponse.build(dict(code='OPERATION_NOT_SUPPORTED', tx_id=p.tx_id)))
+            return
+        else:
+            f(self, p)
