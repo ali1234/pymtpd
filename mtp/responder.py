@@ -5,7 +5,7 @@ import binascii
 import queue
 
 from .packets import mtp_command, mtp_response, mtp_data
-from .deviceinfo import mtp_device_info
+from .types import mtp_device_info
 
 
 operations = {}
