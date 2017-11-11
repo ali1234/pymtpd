@@ -3,6 +3,8 @@ from __future__ import print_function
 from .packets import MTPCommand, MTPResponse, MTPData
 from .types import *
 
+class MTPError(Exception):
+    pass
 
 operations = {}
 
@@ -23,10 +25,28 @@ def receiver(f):
     The data stage must run even if there is an error with the operation.
     """
     def receivedata(self, p):
-        f(self, p, self.receivedata(p.code, p.tx_id))
+        return f(self, p, self.receivedata(p.code, p.tx_id))
     # For compatibility with @operation we must mangle the name.
     receivedata.__name__ = f.__name__
     return receivedata
+
+def sender(f):
+    """Decorator for operations which send data to the inquirer.
+
+    The data stage must run even if there is an error with the operation.
+    """
+    def senddata(self, p):
+        try:
+            (data, params) = f(self, p)
+        except MTPError as e:
+            self.senddata(p.code, p.tx_id, b'')
+            raise e
+        else:
+            self.senddata(p.code, p.tx_id, data)
+            return params
+    # For compatibility with @operation we must mangle the name.
+    senddata.__name__ = f.__name__
+    return senddata
 
 def session(f):
     """Decorator for operations which require a session to be open.
@@ -36,9 +56,9 @@ def session(f):
     """
     def check_session(self, *args):
         if self.session_id is None:
-            self.respond('SESSION_NOT_OPEN', p.tx_id)
+            raise MTPError(code='SESSION_NOT_OPEN')
         else:
-            f(self, *args)
+            return f(self, *args)
     # For compatibility with @operation we must mangle the name.
     check_session.__name__ = f.__name__
     return check_session
@@ -69,63 +89,69 @@ class MTPResponder(object):
         #TODO: check code and tx_id
         return mtpdata.data
 
-    def respond(self, code, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
-        self.inep.write(MTPResponse.build(dict(code=code, tx_id=tx_id, p1=p1, p2=p2, p3=p3, p4=p4, p5=p5)))
+    def respond(self, **kwargs):
+        self.inep.write(MTPResponse.build(dict(**kwargs)))
+
+    def respondok(self, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
+        self.respond(code='OK', tx_id=tx_id, p1=p1, p2=p2, p3=p3, p4=p4, p5=p5)
 
 
     @operation
+    @sender
     def GET_DEVICE_INFO(self, p):
         data = MTPDeviceInfo.build(dict(
                  device_properties_supported=list(self.properties.props.keys()),
                  operations_supported=list(operations.keys()),
                ))
-        self.senddata(p.code, p.tx_id, data)
-        self.respond('OK', p.tx_id)
+        return (data, ())
 
     @operation
     def OPEN_SESSION(self, p):
         if self.session_id is not None:
-            self.respond('SESSION_ALREADY_OPEN', p.tx_id, self.session_id)
+            raise MTPError(code='SESSION_ALREADY_OPEN', p1=self.session_id)
         else:
             self.session_id = p.p1
-            self.respond('OK', p.tx_id)
+        return (self.session_id,)
 
     @operation
     @session
     def CLOSE_SESSION(self, p):
         self.session_id = None
-        self.respond('OK', p.tx_id)
+        return ()
 
     @operation
+    @sender
     @session
     def GET_DEVICE_PROP_DESC(self, p):
         data = self.properties[DevicePropertyCode.decoding[p.p1]].builddesc()
-        self.senddata(p.code, p.tx_id, data)
-        self.respond('OK', p.tx_id)
+        return (data, ())
 
     @operation
+    @sender
     @session
     def GET_DEVICE_PROP_VALUE(self, p):
         data = self.properties[DevicePropertyCode.decoding[p.p1]].build()
-        self.senddata(p.code, p.tx_id, data)
-        self.respond('OK', p.tx_id)
+        return (data, ())
 
     @operation
     @receiver
     @session
     def SET_DEVICE_PROP_VALUE(self, p, data):
         self.properties[DevicePropertyCode.decoding[p.p1]].parse(data)
-        self.respond('OK', p.tx_id)
-
+        return ()
 
     def handleOneOperation(self):
         buf = bytearray(512)
         self.outep.readinto(buf)
         p = MTPCommand.parse(buf)
         print(p)
+
         try:
             f = operations[p.code]
         except KeyError:
-            self.inep.write(MTPResponse.build(dict(code='OPERATION_NOT_SUPPORTED', tx_id=p.tx_id)))
+            self.respond(code='OPERATION_NOT_SUPPORTED', tx_id=p.tx_id)
         else:
-            f(self, p)
+            try:
+                self.respondok(p.tx_id, *f(self, p))
+            except MTPError as e:
+                self.respond(**e.args)
