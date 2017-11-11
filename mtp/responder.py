@@ -17,20 +17,32 @@ def operation(f):
     operations[f.__name__] = f
     return f
 
+def receiver(f):
+    """Decorator for operations which receive data from the inquirer.
+
+    The data stage must run even if there is an error with the operation.
+    """
+    def receivedata(self, p):
+        f(self, p, self.receivedata(p.code, p.tx_id))
+    # For compatibility with @operation we must mangle the name.
+    receivedata.__name__ = f.__name__
+    return receivedata
+
 def session(f):
     """Decorator for operations which require a session to be open.
 
     Returns a SESSION_NOT_OPEN response if no session is open,
     otherwise it calls the handler.
     """
-    def check_session(self, p):
+    def check_session(self, *args):
         if self.session_id is None:
             self.respond('SESSION_NOT_OPEN', p.tx_id)
         else:
-            f(self, p)
+            f(self, *args)
     # For compatibility with @operation we must mangle the name.
     check_session.__name__ = f.__name__
     return check_session
+
 
 class MTPResponder(object):
 
@@ -99,9 +111,9 @@ class MTPResponder(object):
         self.respond('OK', p.tx_id)
 
     @operation
+    @receiver
     @session
-    def SET_DEVICE_PROP_VALUE(self, p):
-        data = self.receivedata(p.code, p.tx_id)
+    def SET_DEVICE_PROP_VALUE(self, p, data):
         self.properties[DevicePropertyCode.decoding[p.p1]].parse(data)
         self.respond('OK', p.tx_id)
 
