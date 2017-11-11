@@ -45,8 +45,17 @@ class MTPResponder(object):
         self.properties.add('SYNCHRONIZATION_PARTNER', '', True)
 
     def senddata(self, code, tx_id, data):
+        # TODO: handle transfers bigger than one packet
         mtpdata = MTPData.build(dict(code=code, tx_id=tx_id, data=data))
         self.inep.write(mtpdata)
+
+    def receivedata(self, code, tx_id):
+        # TODO: handle transfers bigger than one packet
+        buf = bytearray(512)
+        self.outep.readinto(buf)
+        mtpdata = MTPData.parse(buf)
+        #TODO: check code and tx_id
+        return mtpdata.data
 
     def respond(self, code, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
         self.inep.write(MTPResponse.build(dict(code=code, tx_id=tx_id, p1=p1, p2=p2, p3=p3, p4=p4, p5=p5)))
@@ -77,9 +86,23 @@ class MTPResponder(object):
 
     @operation
     @session
+    def GET_DEVICE_PROP_DESC(self, p):
+        data = self.properties[DevicePropertyCode.decoding[p.p1]].builddesc()
+        self.senddata(p.code, p.tx_id, data)
+        self.respond('OK', p.tx_id)
+
+    @operation
+    @session
     def GET_DEVICE_PROP_VALUE(self, p):
         data = self.properties[DevicePropertyCode.decoding[p.p1]].build()
         self.senddata(p.code, p.tx_id, data)
+        self.respond('OK', p.tx_id)
+
+    @operation
+    @session
+    def SET_DEVICE_PROP_VALUE(self, p):
+        data = self.receivedata(p.code, p.tx_id)
+        self.properties[DevicePropertyCode.decoding[p.p1]].parse(data)
         self.respond('OK', p.tx_id)
 
 
