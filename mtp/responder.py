@@ -89,7 +89,6 @@ class MTPResponder(object):
         p = MTPCommand.parse(buf)
         print(p)
         try:
-            #getattr(self, p.code)(p)
             f = operations[p.code]
         except KeyError:
             self.inep.write(MTPResponse.build(dict(code='OPERATION_NOT_SUPPORTED', tx_id=p.tx_id)))
