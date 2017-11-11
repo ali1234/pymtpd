@@ -44,23 +44,21 @@ class MTPResponder(object):
         self.properties.add('DEVICE_FRIENDLY_NAME', 'Whizzle')
         self.properties.add('SYNCHRONIZATION_PARTNER', '', True)
 
-    def datastage(self, data):
-        print(MTPData.parse(data))
-#        self.inep.write(data[:12])
-#        self.inep.write(data[12:])
-        self.inep.write(data)
+    def senddata(self, code, tx_id, data):
+        mtpdata = MTPData.build(dict(code=code, tx_id=tx_id, data=data))
+        self.inep.write(mtpdata)
 
     def respond(self, code, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
         self.inep.write(MTPResponse.build(dict(code=code, tx_id=tx_id, p1=p1, p2=p2, p3=p3, p4=p4, p5=p5)))
 
+
     @operation
     def GET_DEVICE_INFO(self, p):
-        di = MTPDeviceInfo.build(dict(
+        data = MTPDeviceInfo.build(dict(
                  device_properties_supported=list(self.properties.props.keys()),
                  operations_supported=list(operations.keys()),
-             ))
-        data = MTPData.build(dict(code=p.code, tx_id=p.tx_id, data=di))
-        self.datastage(data)
+               ))
+        self.senddata(p.code, p.tx_id, data)
         self.respond('OK', p.tx_id)
 
     @operation
@@ -80,9 +78,8 @@ class MTPResponder(object):
     @operation
     @session
     def GET_DEVICE_PROP_VALUE(self, p):
-        di = self.properties[DevicePropertyCode.decoding[p.p1]].build()
-        data = MTPData.build(dict(code=p.code, tx_id=p.tx_id, data=di))
-        self.datastage(data)
+        data = self.properties[DevicePropertyCode.decoding[p.p1]].build()
+        self.senddata(p.code, p.tx_id, data)
         self.respond('OK', p.tx_id)
 
 
