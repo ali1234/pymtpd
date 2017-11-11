@@ -25,7 +25,7 @@ def session(f):
     """
     def check_session(self, p):
         if self.session_id is None:
-            self.inep.write(MTPResponse.build(dict(code='SESSION_NOT_OPEN', tx_id=p.tx_id)))
+            self.respond('SESSION_NOT_OPEN', p.tx_id)
         else:
             f(self, p)
     # For compatibility with @operation we must mangle the name.
@@ -50,6 +50,9 @@ class MTPResponder(object):
 #        self.inep.write(data[12:])
         self.inep.write(data)
 
+    def respond(self, code, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
+        self.inep.write(MTPResponse.build(dict(code=code, tx_id=tx_id, p1=p1, p2=p2, p3=p3, p4=p4, p5=p5)))
+
     @operation
     def GET_DEVICE_INFO(self, p):
         di = MTPDeviceInfo.build(dict(
@@ -58,23 +61,21 @@ class MTPResponder(object):
              ))
         data = MTPData.build(dict(code=p.code, tx_id=p.tx_id, data=di))
         self.datastage(data)
-        self.inep.write(MTPResponse.build(dict(code='OK', tx_id=p.tx_id)))
+        self.respond('OK', p.tx_id)
 
     @operation
     def OPEN_SESSION(self, p):
         if self.session_id is not None:
-            self.inep.write(MTPResponse.build(dict(code='SESSION_ALREADY_OPEN', tx_id=p.tx_id, p1=self.session_id)))
+            self.respond('SESSION_ALREADY_OPEN', p.tx_id, self.session_id)
         else:
             self.session_id = p.p1
-            self.inep.write(MTPResponse.build(dict(code='OK', tx_id=p.tx_id)))
+            self.respond('OK', p.tx_id)
 
     @operation
     @session
     def CLOSE_SESSION(self, p):
         self.session_id = None
-        self.inep.write(MTPResponse.build(dict(code='OK', tx_id=p.tx_id)))
-
-
+        self.respond('OK', p.tx_id)
 
     @operation
     @session
@@ -82,7 +83,7 @@ class MTPResponder(object):
         di = self.properties[DevicePropertyCode.decoding[p.p1]].build()
         data = MTPData.build(dict(code=p.code, tx_id=p.tx_id, data=di))
         self.datastage(data)
-        self.inep.write(MTPResponse.build(dict(code='OK', tx_id=p.tx_id)))
+        self.respond('OK', p.tx_id)
 
 
     def handleOneOperation(self):
