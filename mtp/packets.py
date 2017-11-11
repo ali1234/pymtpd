@@ -1,13 +1,12 @@
 from construct import *
 from construct.lib import *
 
-from .constants import *
+from .types import *
 
-
-mtp_command = Struct(
+MTPCommand = Struct(
     'length' / Int32ul,
-    'type' / Const(container_type, 'COMMAND'),
-    'code' / operation_code,
+    'type' / Const(ContainerType, 'COMMAND'),
+    'code' / OperationCode,
     'tx_id' / Int32ul,
     'p1' / Default(Int32ul, 0),
     'p2' / Default(Int32ul, 0),
@@ -16,10 +15,10 @@ mtp_command = Struct(
     'p5' / Default(Int32ul, 0),
 )
 
-mtp_response = Struct(
+MTPResponse = Struct(
     'length' / Const(Int32ul, 32),
-    'type' / Const(container_type, 'RESPONSE'),
-    'code' / response_code,
+    'type' / Const(ContainerType, 'RESPONSE'),
+    'code' / ResponseCode,
     'tx_id' / Int32ul,
     'p1' / Default(Int32ul, 0),
     'p2' / Default(Int32ul, 0),
@@ -28,18 +27,18 @@ mtp_response = Struct(
     'p5' / Default(Int32ul, 0),
 )
 
-mtp_data = Struct(
+MTPData = Struct(
     'length' / Rebuild(Int32ul, 12+len_(this.data)),
-    'type' / Const(container_type, 'DATA'),
-    'code' / operation_code,
+    'type' / Const(ContainerType, 'DATA'),
+    'code' / OperationCode,
     'tx_id' / Int32ul,
     'data' / GreedyBytes,
 )
 
-mtp_event = Struct(
+MTPEvent = Struct(
     'length' / Const(Int32ul, 24),
-    'type' / Const(container_type, 'EVENT'),
-    'code' / event_code,
+    'type' / Const(ContainerType, 'EVENT'),
+    'code' / EventCode,
     'tx_id' / Int32ul,
     'p1' / Default(Int32ul, 0),
     'p2' / Default(Int32ul, 0),

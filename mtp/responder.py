@@ -4,8 +4,8 @@ import errno
 import binascii
 import queue
 
-from .packets import mtp_command, mtp_response, mtp_data
-from .structs import mtp_device_info
+from .packets import MTPCommand, MTPResponse, MTPData
+from .types import MTPDeviceInfo
 
 
 operations = {}
@@ -29,7 +29,7 @@ def session(f):
     """
     def check_session(self, p):
         if self.session_id is None:
-            self.inep.write(mtp_response.build(dict(code='SESSION_NOT_OPEN', tx_id=p.tx_id)))
+            self.inep.write(MTPResponse.build(dict(code='SESSION_NOT_OPEN', tx_id=p.tx_id)))
         else:
             f(self, p)
     # For compatibility with @operation we must mangle the name.
@@ -48,42 +48,42 @@ class MTPResponder(object):
 
 
     def datastage(self, data):
-        print(mtp_data.parse(data))
+        print(MTPData.parse(data))
 #        self.inep.write(data[:12])
 #        self.inep.write(data[12:])
         self.inep.write(data)
 
     @operation
     def GET_DEVICE_INFO(self, p):
-        di = mtp_device_info.build(dict(
+        di = MTPDeviceInfo.build(dict(
                  operations_supported=list(operations.keys()),
              ))
-        data = mtp_data.build(dict(code=p.code, tx_id=p.tx_id, data=di))
+        data = MTPData.build(dict(code=p.code, tx_id=p.tx_id, data=di))
         self.datastage(data)
-        self.inep.write(mtp_response.build(dict(code='OK', tx_id=p.tx_id)))
+        self.inep.write(MTPResponse.build(dict(code='OK', tx_id=p.tx_id)))
 
     @operation
     def OPEN_SESSION(self, p):
         if self.session_id is not None:
-            self.inep.write(mtp_response.build(dict(code='SESSION_ALREADY_OPEN', tx_id=p.tx_id, p1=self.session_id)))
+            self.inep.write(MTPResponse.build(dict(code='SESSION_ALREADY_OPEN', tx_id=p.tx_id, p1=self.session_id)))
         else:
             self.session_id = p.p1
-            self.inep.write(mtp_response.build(dict(code='OK', tx_id=p.tx_id)))
+            self.inep.write(MTPResponse.build(dict(code='OK', tx_id=p.tx_id)))
 
     @operation
     @session
     def CLOSE_SESSION(self, p):
         self.session_id = None
-        self.inep.write(mtp_response.build(dict(code='OK', tx_id=p.tx_id)))
+        self.inep.write(MTPResponse.build(dict(code='OK', tx_id=p.tx_id)))
 
 
     def handleOneOperation(self):
         buf = bytearray(512)
         self.outep.readinto(buf)
-        p = mtp_command.parse(buf)
+        p = MTPCommand.parse(buf)
         print(p)
         try:
             #getattr(self, p.code)(p)
             operations[p.code](self, p)
         except KeyError:
-            self.inep.write(mtp_response.build(dict(code='OPERATION_NOT_SUPPORTED', tx_id=p.tx_id)))
+            self.inep.write(MTPResponse.build(dict(code='OPERATION_NOT_SUPPORTED', tx_id=p.tx_id)))

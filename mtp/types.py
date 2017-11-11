@@ -1,18 +1,63 @@
 from construct import *
 from construct.lib import *
 
-class Term(Adapter):
-    def _encode(self, obj, ctx):
-        return obj + ([0] if len(obj) > 0 else [])
-    def _decode(self, obj, ctx):
-        return obj[:-1]
+from .mtpstring import MTPString
+from .constants import *
+
+def l2d(l, a=0, b=1, wrap=lambda x: x):
+    return {x[a]: wrap(x[b]) for x in l}
+
+def EnumList(format, l, a=0, b=1):
+    return Enum(format, **l2d(l, a, b))
+
+ContainerType = EnumList(Int16ul, container_types)
+
+DataType = EnumList(Int16ul, data_types)
+DataType.formats = l2d(data_types, 0, 2)
+
+FormatType = EnumList(Int16ul, format_types)
+
+ObjectPropertyCode = EnumList(Int16ul, object_property_codes)
+
+DevicePropertyCode = EnumList(Int16ul, device_property_codes)
+DevicePropertyCode.formats = l2d(device_property_codes, 0, 2, lambda x: Const(DataType, x))
+
+OperationCode = EnumList(Int16ul, operation_codes)
+
+ResponseCode = EnumList(Int16ul, response_codes)
+
+EventCode = EnumList(Int16ul, event_codes)
+
+StorageType = EnumList(Int16ul, storage_types)
+
+StorageAccess = EnumList(Int16ul, storage_accesss)
+
+AssociationType = EnumList(Int16ul, association_types)
 
 
-class SL(Adapter):
-    def _encode(self, obj, ctx):
-        return [ord(c) for c in obj]
-    def _decode(self, obj, ctx):
-        return u''.join(chr(i) for i in obj)
+MTPDeviceInfo = Struct(
+    'standard_version' / Const(Int16ul, VERSION),
+    'vendor_extension_id' / Const(Int32ul, 0xffffffff),
+    'version' / Default(Int16ul, 0),
+    'extensions' / Default(MTPString, ''),
+    'functional_mode' / Default(Int16ul, 0),
+    'operations_supported' / Default(PrefixedArray(Int32ul, OperationCode), []),
+    'events_supported' / Default(PrefixedArray(Int32ul, EventCode), []),
+    'device_properties_supported' / Default(PrefixedArray(Int32ul, DevicePropertyCode), []),
+    'capture_formats' / Default(PrefixedArray(Int32ul, FormatType), []),
+    'playback_formats' / Default(PrefixedArray(Int32ul, FormatType), []),
+    'manufacturer' / Default(MTPString, 'Foo Inc.'),
+    'model' / Default(MTPString, 'Whizzotron'),
+    'device_version' / Default(MTPString, '1.0.0'),
+    'serial_number' / Default(MTPString, '123987564'),
+)
 
+DevicePropertyDesc = Struct(
+    'code' / DevicePropertyCode,
+    'type' / Switch(this.code, DevicePropertyCode.formats),
+    'writable' / Default(Byte, False),
+    'default' / Switch(this.type, DataType.formats),
+    'current' / Switch(this.type, DataType.formats),
+    'form' / Const(Byte, 0),
+)
 
-MTPString = SL(Term(PrefixedArray(Byte, Int16ul)))
