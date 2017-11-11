@@ -47,7 +47,7 @@ MTPEvent = Struct(
 
 if __name__ == '__main__':
     from binascii import hexlify
-    b = mtp_data.build(dict(data=b'12345', tx_id=1))
-    p = mtp_data.parse(b)
+    b = MTPData.build(dict(data=b'12345', tx_id=1))
+    p = MTPData.parse(b)
     print(p)
     print(hexlify(b))
