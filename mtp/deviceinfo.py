@@ -2,7 +2,7 @@ from construct import *
 from construct.lib import *
 
 from .constants import *
-
+from .types import *
 
 
 
@@ -11,17 +11,17 @@ mtp_device_info = Struct(
     'standard_version' / Const(Int16ul, VERSION),
     'vendor_extension_id' / Const(Int32ul, 0xffffffff),
     'version' / Default(Int16ul, 0),
-    'extensions' / Default(PascalString(Byte, encoding='utf-16'), ''),
+    'extensions' / Default(MTPString(), 'Hello'),
     'functional_mode' / Default(Int16ul, 0),
     'operations_supported' / Default(PrefixedArray(Int32ul, operation_code), []),
     'events_supported' / Default(PrefixedArray(Int32ul, event_code), []),
     'device_properties_supported' / Default(PrefixedArray(Int32ul, device_property_code), []),
     'capture_formats' / Default(PrefixedArray(Int32ul, format_type), []),
     'playback_formats' / Default(PrefixedArray(Int32ul, format_type), []),
-    'manufacturer' / Default(PascalString(Byte, encoding='utf-16'), 'Foo Inc.'),
-    'model' / Default(PascalString(Byte, encoding='utf-16'), 'Whizzotron'),
-    'device_version' / Default(PascalString(Byte, encoding='utf-16'), '1.0.0'),
-    'serial_number' / Default(PascalString(Byte, encoding='utf-16'), '123987564'),
+    'manufacturer' / Default(MTPString(), 'Foo Inc.'),
+    'model' / Default(MTPString(), 'Whizzotron'),
+    'device_version' / Default(MTPString(), '1.0.0'),
+    'serial_number' / Default(MTPString(), '123987564'),
 )
 
 
