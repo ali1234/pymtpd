@@ -1,9 +1,5 @@
 from __future__ import print_function
 
-import errno
-import binascii
-import queue
-
 from .packets import MTPCommand, MTPResponse, MTPData
 from .types import MTPDeviceInfo
 
