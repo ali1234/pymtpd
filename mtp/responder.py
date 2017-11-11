@@ -127,6 +127,5 @@ class MTPResponder(object):
             f = operations[p.code]
         except KeyError:
             self.inep.write(MTPResponse.build(dict(code='OPERATION_NOT_SUPPORTED', tx_id=p.tx_id)))
-            return
         else:
             f(self, p)
