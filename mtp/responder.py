@@ -7,21 +7,32 @@ import queue
 from .packets import mtp_command, mtp_response, mtp_data
 from .deviceinfo import mtp_device_info
 
+
 operations = {}
 
 def operation(f):
+    """Add any function with this decorator to operations map.
+
+    The map is used when parsing operation packets, which have
+    a string for the operation. Thus, to handle an operation
+    packet, simply create a function with the appropriate name
+    and add this decorator.
+    """
     operations[f.__name__] = f
     return f
 
-# decorator for operations which require a session to be open
 def session(f):
+    """Decorator for operations which require a session to be open.
+
+    Returns a SESSION_NOT_OPEN response if no session is open,
+    otherwise it calls the handler.
+    """
     def check_session(self, p):
         if self.session_id is None:
             self.inep.write(mtp_response.build(dict(code='SESSION_NOT_OPEN', tx_id=p.tx_id)))
         else:
             f(self, p)
-    # in order for the operations map to work,
-    # we have to fix the name of the decorated function
+    # For compatibility with @operation we must mangle the name.
     check_session.__name__ = f.__name__
     return check_session
 
