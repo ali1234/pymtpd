@@ -73,6 +73,9 @@ class DeviceProperties(object):
         def set(self, value):
             self.__current = value
 
+        def parse(self, value):
+            self.__current = DevicePropertyCode.formats[self.__code].parse(value)
+
         def build(self):
             return DevicePropertyCode.formats[self.__code].build(self.__current)
 
