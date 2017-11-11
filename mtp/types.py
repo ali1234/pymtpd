@@ -1,6 +1,7 @@
 from construct import *
 from construct.lib import *
 
+from .constants import *
 
 class Term(Adapter):
     def _encode(self, obj, ctx):

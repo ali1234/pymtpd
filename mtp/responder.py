@@ -55,7 +55,9 @@ class MTPResponder(object):
 
     @operation
     def GET_DEVICE_INFO(self, p):
-        di = mtp_device_info.build(dict(operations_supported=list(operations.keys())))
+        di = mtp_device_info.build(dict(
+                 operations_supported=list(operations.keys()),
+             ))
         data = mtp_data.build(dict(code=p.code, tx_id=p.tx_id, data=di))
         self.datastage(data)
         self.inep.write(mtp_response.build(dict(code='OK', tx_id=p.tx_id)))
