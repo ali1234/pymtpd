@@ -13,6 +13,18 @@ def operation(f):
     operations[f.__name__] = f
     return f
 
+# decorator for operations which require a session to be open
+def session(f):
+    def check_session(self, p):
+        if self.session_id is None:
+            self.inep.write(mtp_response.build(dict(code='SESSION_NOT_OPEN', tx_id=p.tx_id)))
+        else:
+            f(self, p)
+    # in order for the operations map to work,
+    # we have to fix the name of the decorated function
+    check_session.__name__ = f.__name__
+    return check_session
+
 class MTPResponder(object):
 
     def __init__(self, outep, inep, intep):
@@ -46,12 +58,10 @@ class MTPResponder(object):
             self.inep.write(mtp_response.build(dict(code='OK', tx_id=p.tx_id)))
 
     @operation
+    @session
     def CLOSE_SESSION(self, p):
-        if self.session_id is None:
-            self.inep.write(mtp_response.build(dict(code='SESSION_NOT_OPEN', tx_id=p.tx_id)))
-        else:
-            self.session_id = None
-            self.inep.write(mtp_response.build(dict(code='OK', tx_id=p.tx_id)))
+        self.session_id = None
+        self.inep.write(mtp_response.build(dict(code='OK', tx_id=p.tx_id)))
 
 
     def handleOneOperation(self):
