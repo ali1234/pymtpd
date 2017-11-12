@@ -14,7 +14,7 @@
 
 from construct import *
 
-from mtp.mtpstring import MTPString
+from mtp.types import MTPString
 
 VERSION = 100
 

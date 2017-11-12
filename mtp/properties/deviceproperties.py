@@ -1,6 +1,6 @@
 from construct import Struct, Switch, Default, Const, Byte, this
 
-from mtp.propertymanager import PropertyManager
+from mtp.properties.propertymanager import PropertyManager
 from mtp.types import MTPError, DevicePropertyCode
 
 DevicePropertyDesc = Struct(

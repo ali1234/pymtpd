@@ -1,8 +1,7 @@
 from __future__ import print_function
 
-from mtp.deviceproperties import DeviceProperties
-from mtp.packets import MTPCommand, MTPResponse, MTPData
-from mtp.types import MTPError, MTPDeviceInfo, DevicePropertyCode
+from mtp.properties import DeviceProperties
+from mtp.types import *
 
 operations = {}
 
