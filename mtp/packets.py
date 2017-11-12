@@ -1,6 +1,12 @@
 from construct import *
 
-from mtp.types import ContainerType, OperationCode, ResponseCode, EventCode
+import mtp.constants
+
+
+ContainerType = Enum(Int16ul, **dict(mtp.constants.container_types))
+OperationCode = Enum(Int16ul, **dict(mtp.constants.operation_codes))
+ResponseCode = Enum(Int16ul, **dict(mtp.constants.response_codes))
+EventCode = Enum(Int16ul, **dict(mtp.constants.event_codes))
 
 MTPCommand = Struct(
     'length' / Int32ul,
@@ -46,7 +52,7 @@ MTPEvent = Struct(
 
 if __name__ == '__main__':
     from binascii import hexlify
-    b = MTPData.build(dict(data=b'12345', tx_id=1))
+    b = MTPData.build(dict(code='GET_DEVICE_PROP_VALUE', tx_id=5, data=b'12345'))
     p = MTPData.parse(b)
     print(p)
     print(hexlify(b))

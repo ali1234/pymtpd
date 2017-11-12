@@ -1,4 +1,4 @@
-class PropertyManager(object):
+class Properties(object):
     def __init__(self, proptype, *args):
         self._props = {}
         self._proptype = proptype

@@ -1,1 +1,0 @@
-from mtp.properties.deviceproperties import DeviceProperties

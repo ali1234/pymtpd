@@ -1,7 +1,7 @@
 from __future__ import print_function
 
-from mtp.properties import DeviceProperties
-from mtp.types import *
+from mtp.device import DeviceInfo, DeviceProperties
+from mtp.codes import *
 
 operations = {}
 
@@ -97,7 +97,7 @@ class MTPResponder(object):
     @operation
     @sender
     def GET_DEVICE_INFO(self, p):
-        data = MTPDeviceInfo.build(dict(
+        data = DeviceInfo.build(dict(
                  device_properties_supported=list(self.properties.keys()),
                  operations_supported=list(operations.keys()),
                ))

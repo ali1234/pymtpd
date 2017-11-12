@@ -14,7 +14,7 @@
 
 from construct import *
 
-from mtp.types import MTPString
+from mtp.adapters import MTPString
 
 VERSION = 100
 
@@ -38,8 +38,8 @@ data_types = [
     ('UINT32',        0x0006, Int32ul),
     ('INT64',         0x0007, Int64sl),
     ('UINT64',        0x0008, Int64ul),
-#    ('INT128':        (0x0009, Int128sl),
-#    ('UINT128':       (0x000A, Int128ul),
+#    ('INT128':        0x0009, Int128sl),
+#    ('UINT128':       0x000A, Int128ul),
     ('AINT8',         0x4001, PrefixedArray(Int32ul, Byte)),
     ('AUINT8',        0x4002, PrefixedArray(Int32ul, Byte)),
     ('AINT16',        0x4003, PrefixedArray(Int32ul, Int16sl)),
@@ -48,8 +48,8 @@ data_types = [
     ('AUINT32',       0x4006, PrefixedArray(Int32ul, Int32ul)),
     ('AINT64',        0x4007, PrefixedArray(Int32ul, Int64sl)),
     ('AUINT64',       0x4008, PrefixedArray(Int32ul, Int64ul)),
-#    ('AINT128',       (0x4009, PrefixedArray(Int32ul, Int128sl)),
-#    ('AUINT128',      (0x400A, PrefixedArray(Int32ul, Int128ul)),
+#    ('AINT128',       0x4009, PrefixedArray(Int32ul, Int128sl)),
+#    ('AUINT128',      0x400A, PrefixedArray(Int32ul, Int128ul)),
     ('STR',           0xFFFF, MTPString),
 ]
 
