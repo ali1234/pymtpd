@@ -8,33 +8,33 @@ How to use:
 
 1. Kernel must have libcomposite and dummy_hcd.
 
-dummy_hcd is not available in Ubuntu. You can build it yourself
+   dummy_hcd is not available in Ubuntu. You can build it yourself
 using DKMS by following these steps:
 
-https://serianox.github.io/gadgetfs-ubuntu.html
+   https://serianox.github.io/gadgetfs-ubuntu.html
 
-On Ubuntu 16.04 you need linux 4.4.0-100 to fix a bug when removing
+   On Ubuntu 16.04 you need linux 4.4.0-100 to fix a bug when removing
 the gadget. Without the patch the kernel will crash.
 
-After you built and installed dummy_hcd, add to /etc/modules:
+   After you built and installed dummy_hcd, add to /etc/modules:
 
-    dummy_hcd
-    libcomposite
+       dummy_hcd
+       libcomposite
 
 2. Python modules required: functionfs and construct.
 
-You can run these as regular user or root depending on where you
+   You can run these as regular user or root depending on where you
 want them installed. It works either way.
 
-    pip3 install functionfs
-    pip3 install construct
+       pip3 install functionfs
+       pip3 install construct
 
 3. As root, run ./pymtpd
 
-It configures all the configfs stuff and mounts the functionfs.
+   It configures all the configfs stuff and mounts the functionfs.
 Then it starts handling MTP requests.
 
 4. As root, run mtp-detect from mtp-tools package.
 
-You should see some output from pymtpd. mtp-detect will crash, because
-pymtpd is not fully implemented yet.
+   You should see some output from pymtpd. mtp-detect will crash,
+because pymtpd is not fully implemented yet.
