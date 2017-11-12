@@ -1,15 +1,15 @@
 class PropertyManager(object):
     def __init__(self, proptype, *args):
-        self.__props = {}
-        self.__proptype = proptype
+        self._props = {}
+        self._proptype = proptype
         for arg in args:
-            self.__props[arg[0]] = self.__proptype(*arg)
+            self._props[arg[0]] = self._proptype(*arg)
 
     def keys(self):
-        return self.__props.keys()
+        return self._props.keys()
 
     def __getitem__(self, code):
         try:
-            return self.__props[code]
+            return self._props[code]
         except KeyError:
-            raise self.__proptype.keyerror
+            raise self._proptype.keyerror

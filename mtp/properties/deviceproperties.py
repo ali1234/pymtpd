@@ -24,7 +24,14 @@ class DeviceProperty(object):
     def set(self, value):
         self.__current = value
 
+    def reset(self, force=False):
+        if not force and not self.__writable:
+            raise MTPError('ACCESS_DENIED')
+        self.__current = self.__default
+
     def parse(self, value):
+        if not self.__writable:
+            raise MTPError('ACCESS_DENIED')
         self.__current = DevicePropertyCode.formats[self.__code].parse(value)
 
     def build(self):
@@ -43,4 +50,6 @@ class DeviceProperties(PropertyManager):
     def __init__(self, *args):
         super().__init__(DeviceProperty, *args)
 
-
+    def reset(self):
+        for p in self._props:
+            p.reset(force=True)

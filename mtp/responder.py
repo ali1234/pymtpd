@@ -138,6 +138,14 @@ class MTPResponder(object):
         self.properties[DevicePropertyCode.decoding[p.p1]].parse(data)
         return ()
 
+    @operation
+    @session
+    def RESET_DEVICE_PROP_VALUE(selfself, p):
+        if p.p1 == 0xffffffff:
+            self.properties.reset()
+        else:
+            self.properties[DevicePropertyCode.decoding[p.p1]].reset()
+
 
     def operations(self, code):
         try:
