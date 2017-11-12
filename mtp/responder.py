@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 from mtp.device import DeviceInfo, DeviceProperties
-from mtp.codes import *
+
 
 operations = {}
 

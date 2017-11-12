@@ -3,8 +3,8 @@ from construct import *
 from mtp import constants
 from mtp.exceptions import MTPError
 from mtp.properties import Properties
-from mtp.packets import EventCode, OperationCode
-from mtp.codes import DataType, FormatType
+from mtp.packets import EventCode, OperationCode, DataType
+from mtp.object import FormatType
 from mtp.adapters import MTPString
 
 

@@ -8,6 +8,16 @@ OperationCode = Enum(Int16ul, **dict(mtp.constants.operation_codes))
 ResponseCode = Enum(Int16ul, **dict(mtp.constants.response_codes))
 EventCode = Enum(Int16ul, **dict(mtp.constants.event_codes))
 
+DataType = Enum(Int16ul, {x[0]: x[1] for x in mtp.constants.data_types})
+DataType.formats = {x[0]: x[2] for x in mtp.constants.data_types}
+
+
+
+StorageType = Enum(Int16ul, dict(mtp.constants.storage_types))
+StorageAccess = Enum(Int16ul, dict(mtp.constants.storage_accesss))
+AssociationType = Enum(Int16ul, dict(mtp.constants.association_types))
+
+
 MTPCommand = Struct(
     'length' / Int32ul,
     'type' / Const(ContainerType, 'COMMAND'),
