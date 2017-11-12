@@ -20,8 +20,8 @@ class MTPGadget(mtp.Gadget):
         self.gadget.os_desc.qw_sign = 'MSFT100'
 
         self.gadget.strings['0x409'].serialnumber = '9112473'
-        self.gadget.strings['0x409'].manufacturer = 'ali1234'
-        self.gadget.strings['0x409'].product = 'something'
+        self.gadget.strings['0x409'].manufacturer = 'Foo Inc.'
+        self.gadget.strings['0x409'].product = 'Whizzotron'
 
         self.gadget.functions['rndis.usb0'].os_desc['interface.rndis'].compatible_id = 'RNDIS'
         self.gadget.functions['rndis.usb0'].os_desc['interface.rndis'].sub_compatible_id = '5162001'
