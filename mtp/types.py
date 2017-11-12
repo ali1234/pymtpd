@@ -4,6 +4,12 @@ from construct.lib import *
 from .mtpstring import MTPString
 from .constants import *
 
+class MTPError(Exception):
+    def __init__(self, code, params=()):
+        super().__init__(code)
+        self.code = code
+        self.params = params
+
 def l2d(l, a=0, b=1, wrap=lambda x: x):
     return {x[a]: wrap(x[b]) for x in l}
 
@@ -94,15 +100,8 @@ class DeviceProperties(object):
         self.props[code] = self.DeviceProperty(code, default, writable)
 
     def __getitem__(self, code):
-        return self.props[code]
+        try:
+            return self.props[code]
+        except KeyError:
+            raise MTPError('DEVICE_PROP_NOT_SUPPORTED')
 
-if __name__ == '__main__':
-
-    import code
-    code.interact(local=locals())
-
-    p = DeviceProperties()
-    p.add('DEVICE_FRIENDLY_NAME', 'Yolo')
-    p['DEVICE_FRIENDLY_NAME'].set('Swaggity')
-
-    print(p['DEVICE_FRIENDLY_NAME'].builddesc())

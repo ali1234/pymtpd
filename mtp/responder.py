@@ -3,9 +3,6 @@ from __future__ import print_function
 from .packets import MTPCommand, MTPResponse, MTPData
 from .types import *
 
-class MTPError(Exception):
-    pass
-
 operations = {}
 
 def operation(f):
@@ -56,7 +53,7 @@ def session(f):
     """
     def check_session(self, *args):
         if self.session_id is None:
-            raise MTPError(code='SESSION_NOT_OPEN')
+            raise MTPError('SESSION_NOT_OPEN')
         else:
             return f(self, *args)
     # For compatibility with @operation we must mangle the name.
@@ -89,11 +86,10 @@ class MTPResponder(object):
         #TODO: check code and tx_id
         return mtpdata.data
 
-    def respond(self, **kwargs):
-        self.inep.write(MTPResponse.build(dict(**kwargs)))
-
-    def respondok(self, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
-        self.respond(code='OK', tx_id=tx_id, p1=p1, p2=p2, p3=p3, p4=p4, p5=p5)
+    def respond(self, code, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
+        args = locals()
+        del args['self']
+        self.inep.write(MTPResponse.build(args))
 
 
     @operation
@@ -108,7 +104,7 @@ class MTPResponder(object):
     @operation
     def OPEN_SESSION(self, p):
         if self.session_id is not None:
-            raise MTPError(code='SESSION_ALREADY_OPEN', p1=self.session_id)
+            raise MTPError('SESSION_ALREADY_OPEN', (self.session_id,))
         else:
             self.session_id = p.p1
         return (self.session_id,)
@@ -140,18 +136,22 @@ class MTPResponder(object):
         self.properties[DevicePropertyCode.decoding[p.p1]].parse(data)
         return ()
 
+
+    def operations(self, code):
+        try:
+            return operations[code]
+        except KeyError:
+            raise MTPError('OPERATION_NOT_SUPPORTED')
+
     def handleOneOperation(self):
+
         buf = bytearray(512)
         self.outep.readinto(buf)
         p = MTPCommand.parse(buf)
-        print(p)
 
         try:
-            f = operations[p.code]
-        except KeyError:
-            self.respond(code='OPERATION_NOT_SUPPORTED', tx_id=p.tx_id)
-        else:
-            try:
-                self.respondok(p.tx_id, *f(self, p))
-            except MTPError as e:
-                self.respond(**e.args)
+            self.respond('OK', p.tx_id, *self.operations(p.code)(self, p))
+        except MTPError as e:
+            print('MTPError:', e)
+            print('Operation', p)
+            self.respond(e.code, p.tx_id, *e.params)
