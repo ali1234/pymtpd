@@ -27,4 +27,4 @@ if __name__ == '__main__':
     print(MTPString.parse(b'\x00'))
     print(MTPString.parse(b'\x02A\x00\x00\x00'))
     print(MTPString.parse(b'\x06h\x00e\x00l\x00l\x00o\x00\x00\x00'))
-    print(type(SL))
+
