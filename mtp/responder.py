@@ -83,7 +83,9 @@ class MTPResponder(object):
         buf = bytearray(512)
         self.outep.readinto(buf)
         mtpdata = MTPData.parse(buf)
-        #TODO: check code and tx_id
+        #TODO: check code
+        if mtpdata.tx_id != tx_id:
+            raise MTPError('INVALID_TRANSACTION_ID')
         return mtpdata.data
 
     def respond(self, code, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
