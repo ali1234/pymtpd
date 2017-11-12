@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+from mtp.deviceproperties import DeviceProperties
 from .packets import MTPCommand, MTPResponse, MTPData
 from .types import *
 
@@ -68,10 +69,10 @@ class MTPResponder(object):
         self.inep = inep
         self.intep = intep
         self.session_id = None
-        self.properties = DeviceProperties()
-
-        self.properties.add('DEVICE_FRIENDLY_NAME', 'Whizzle')
-        self.properties.add('SYNCHRONIZATION_PARTNER', '', True)
+        self.properties = DeviceProperties(
+            ('DEVICE_FRIENDLY_NAME', 'Whizzle'),
+            ('SYNCHRONIZATION_PARTNER', '', True),
+        )
 
     def senddata(self, code, tx_id, data):
         # TODO: handle transfers bigger than one packet
@@ -98,7 +99,7 @@ class MTPResponder(object):
     @sender
     def GET_DEVICE_INFO(self, p):
         data = MTPDeviceInfo.build(dict(
-                 device_properties_supported=list(self.properties.props.keys()),
+                 device_properties_supported=list(self.properties.keys()),
                  operations_supported=list(operations.keys()),
                ))
         return (data, ())

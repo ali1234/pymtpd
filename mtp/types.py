@@ -1,6 +1,7 @@
 from construct import *
 from construct.lib import *
 
+from mtp.propertymanager import PropertyManager
 from .mtpstring import MTPString
 from .constants import *
 
@@ -59,49 +60,8 @@ MTPDeviceInfo = Struct(
     'serial_number' / Default(MTPString, '123987564'),
 )
 
-DevicePropertyDesc = Struct(
-    'code' / DevicePropertyCode,
-    'type' / Switch(this.code, DevicePropertyCode.consttypes),
-    'writable' / Default(Byte, False),
-    'default' / Switch(this.code, DevicePropertyCode.formats),
-    'current' / Switch(this.code, DevicePropertyCode.formats),
-    'form' / Const(Byte, 0),
-)
 
-class DeviceProperties(object):
-    class DeviceProperty(object):
-        def __init__(self, code, default, writable):
-            self.__code = code
-            self.__default = default
-            self.__current = default
-            self.__writable = writable
 
-        def set(self, value):
-            self.__current = value
 
-        def parse(self, value):
-            self.__current = DevicePropertyCode.formats[self.__code].parse(value)
 
-        def build(self):
-            return DevicePropertyCode.formats[self.__code].build(self.__current)
-
-        def builddesc(self):
-            return DevicePropertyDesc.build(dict(
-                code = self.__code,
-                writable = self.__writable,
-                default = self.__default,
-                current = self.__current,
-            ))
-
-    def __init__(self):
-        self.props = {}
-
-    def add(self, code, default, writable=False):
-        self.props[code] = self.DeviceProperty(code, default, writable)
-
-    def __getitem__(self, code):
-        try:
-            return self.props[code]
-        except KeyError:
-            raise MTPError('DEVICE_PROP_NOT_SUPPORTED')
 
