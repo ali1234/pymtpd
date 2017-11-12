@@ -1,4 +1,4 @@
-from construct import *
+from construct import Adapter, PrefixedArray, Byte, Int16ul
 
 
 class Term(Adapter):

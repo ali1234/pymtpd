@@ -1,2 +1,2 @@
-from .function import MTPFunction
-from .gadget import Gadget
+from mtp.function import MTPFunction
+from mtp.gadget import Gadget

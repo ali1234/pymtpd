@@ -1,7 +1,6 @@
 from construct import *
-from construct.lib import *
 
-from .types import *
+from mtp.types import ContainerType, OperationCode, ResponseCode, EventCode
 
 MTPCommand = Struct(
     'length' / Int32ul,
