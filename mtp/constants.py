@@ -21,7 +21,7 @@ VERSION = 100
 # MTP Container Types
 container_types = [
     ('UNDEFINED',   0),
-    ('COMMAND',     1),
+    ('OPERATION',     1),
     ('DATA',        2),
     ('RESPONSE',    3),
     ('EVENT',       4),

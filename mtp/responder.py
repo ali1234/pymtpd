@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 from mtp.device import DeviceInfo, DeviceProperties
-
+from mtp.packets import MTPOperation, MTPResponse, MTPData
 
 operations = {}
 
@@ -157,7 +157,7 @@ class MTPResponder(object):
 
         buf = bytearray(512)
         self.outep.readinto(buf)
-        p = MTPCommand.parse(buf)
+        p = MTPOperation.parse(buf)
 
         try:
             self.respond('OK', p.tx_id, *self.operations(p.code)(self, p))
