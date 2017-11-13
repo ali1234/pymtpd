@@ -484,6 +484,7 @@ storage_types = [
 
 # Storage File System
 storage_file_systems = [
+    ('UNDEFINED',           0x0000),
     ('FLAT',                0x0001),
     ('HIERARCHICAL',        0x0002),
     ('DCF',                 0x0003),
