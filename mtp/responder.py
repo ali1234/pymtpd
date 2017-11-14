@@ -4,6 +4,7 @@ from mtp.exceptions import MTPError
 from mtp.device import DeviceInfo, DeviceProperties, DevicePropertyCode
 from mtp.packets import MTPOperation, MTPResponse, MTPData, DataType
 from mtp.storage import StorageManager
+from mtp.object import ObjectManager
 
 operations = {}
 
@@ -77,6 +78,7 @@ class MTPResponder(object):
         self.storage = StorageManager(
             ('/tmp/mtp', u'Files', True)
         )
+        self.objects = ObjectManager()
 
     def senddata(self, code, tx_id, data):
         # TODO: handle transfers bigger than one packet
@@ -152,11 +154,23 @@ class MTPResponder(object):
             self.properties[DevicePropertyCode.decoding[p.p1]].reset()
 
     @operation
-    @session
     @sender
+    @session
     def GET_STORAGE_IDS(self, p):
         data = DataType.formats['AUINT32'].build(list(self.storage.keys()))
         return(data, ())
+
+    @operation
+    @sender
+    @session
+    def GET_OBJECT_HANDLES(self, p):
+        if p.p2 != 0:
+            raise MTPError('SPECIFICATION_BY_FORMAT_UNSUPPORTED')
+        if p.p1 == 0xffffffff:
+            data = DataType.formats['AUINT32'].build(list(self.storage.handles(p.p3)))
+        else:
+            data = DataType.formats['AUINT32'].build(list(self.storage[p.p1].handles(p.p3)))
+        return (data, ())
 
 
     def operations(self, code):
