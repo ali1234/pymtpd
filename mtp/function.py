@@ -73,27 +73,45 @@ class MTPFunction(functionfs.Function):
         hs_list.append(INT_DESCRIPTOR)
         fs_list.append(INT_DESCRIPTOR)
 
-        super(MTPFunction, self).__init__(
-            path,
-            fs_list=fs_list,
-            hs_list=hs_list,
-            lang_dict={
-                0x0409: [
-                    u'MTP',
-                ],
-            },
-        )
+        try:
+            # If anything goes wrong from here on we MUST not
+            # hold any file descriptors open, else there is a
+            # good chance the kernel will deadlock.
+            super(MTPFunction, self).__init__(
+                path,
+                fs_list=fs_list,
+                hs_list=hs_list,
+                lang_dict={
+                    0x0409: [
+                        u'MTP',
+                    ],
+                },
+            )
 
-        self.inep = self._ep_list[1]
-        self.outep = self._ep_list[2]
-        self.intep = self._ep_list[3]
+            assert len(self._ep_list) == 4
 
-        assert len(self._ep_list) == 4
-        self.responder = MTPResponder(
-            outep=self.outep,
-            inep=self.inep,
-            intep=self.intep,
-        )
+            self.inep = self._ep_list[1]
+            self.outep = self._ep_list[2]
+            self.intep = self._ep_list[3]
+
+            self.responder = MTPResponder(
+                outep=self.outep,
+                inep=self.inep,
+                intep=self.intep,
+            )
+
+        except:
+            # Catch ANY exception, close all file descriptors
+            # and then re-raise.
+            self.close()
+            raise
+
+    def __enter__(self):
+        print('HELLO')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print('GOODBYE', self._ep_list)
+        super().__exit__(exc_type, exc_value, traceback)
 
     def processEventsForever(self):
         while True:
