@@ -15,6 +15,7 @@ ObjectInfo = Struct(
     'storage_id' / Int32ul,
     'format' / Default(FormatType, 'UNDEFINED'),
     'protection' / Default(Int16ul, 0),
+    'compressed_size' / Default(Int32ul, 0),
     'thumb_format' / Default(FormatType, 'UNDEFINED'),
     'thumb_compressed_size' / Default(Int32ul, 0),
     'thumb_width' / Default(Int32ul, 0),
