@@ -44,7 +44,9 @@ class MTPGadget(mtp.Gadget):
         print('Tearing down gadget')
         self.gadget.UDC = ''
 
-        subprocess.call(['umount', '/dev/mtp'])
+        if(subprocess.call(['umount', '/dev/mtp'])):
+            print('Can\'t teardown gadget because functonfs is still in use.')
+            return
 
         self.remove_function_from_config('rndis.usb0', 'c.1')
         self.remove_function_from_config('acm.GS0', 'c.1')
