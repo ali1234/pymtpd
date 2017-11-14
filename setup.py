@@ -9,7 +9,7 @@ setup(
     url='http://github.com/ali1234/pymtpd',
     license='GPLv3+',
     platforms=['linux'],
-    packages=['mtp', 'mtp.types', 'mtp.properties'],
+    packages=['mtp'],
     scripts=['pymtpd'],
     install_requires=[
         'functionfs', 'construct'
