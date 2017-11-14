@@ -12,7 +12,6 @@ from mtp.object import ObjectManager
 StorageType = Enum(Int16ul, **dict(mtp.constants.storage_types))
 StorageFileSystems = Enum(Int16ul, **dict(mtp.constants.storage_file_systems))
 StorageAccess = Enum(Int16ul, **dict(mtp.constants.storage_accesss))
-AssociationType = Enum(Int16ul, **dict(mtp.constants.association_types))
 
 StorageInfo = Struct(
     'storage_type' / Default(StorageType, 'FIXED_RAM'),
