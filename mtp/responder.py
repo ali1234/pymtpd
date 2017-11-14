@@ -171,6 +171,13 @@ class MTPResponder(object):
             data = DataType.formats['AUINT32'].build(list(self.storage[p.p1].handles(p.p3)))
         return (data, ())
 
+    @operation
+    @sender
+    @session
+    def GET_OBJECT_INFO(self, p):
+        data = self.storage.object(p.p1).build()
+        return (data, ())
+
 
     def operations(self, code):
         try:

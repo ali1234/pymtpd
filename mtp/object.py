@@ -1,4 +1,4 @@
-import itertools
+import itertools, datetime
 from construct import *
 
 import mtp.constants
@@ -13,23 +13,23 @@ AssociationType = Enum(Int16ul, **dict(mtp.constants.association_types))
 
 ObjectInfo = Struct(
     'storage_id' / Int32ul,
-    'format' / FormatType,
-    'protection' / Int16ul,
-    'thumb_format' / FormatType,
-    'thumb_compressed_size' / Int32ul,
-    'thumb_width' / Int32ul,
-    'thumb_height' / Int32ul,
-    'image_width' / Int32ul,
-    'image_height' / Int32ul,
-    'image_bit_depth' / Int32ul,
+    'format' / Default(FormatType, 'UNDEFINED'),
+    'protection' / Default(Int16ul, 0),
+    'thumb_format' / Default(FormatType, 'UNDEFINED'),
+    'thumb_compressed_size' / Default(Int32ul, 0),
+    'thumb_width' / Default(Int32ul, 0),
+    'thumb_height' / Default(Int32ul, 0),
+    'image_width' / Default(Int32ul, 0),
+    'image_height' / Default(Int32ul, 0),
+    'image_bit_depth' / Default(Int32ul, 0),
     'parent_object' / Int32ul,
     'association_type' / AssociationType,
-    'association_description' / Int32ul, # what is this?
-    'sequence_number' / Int32ul,
+    'association_description' / Default(Int32ul, 0), # what is this?
+    'sequence_number' / Default(Int32ul, 0),
     'filename' / MTPString,
-    'ctime' / MTPString,
-    'mtime' / MTPString,
-    'keywords' / MTPString,
+    'ctime' / Default(MTPDateTime, datetime.datetime.now()),
+    'mtime' / Default(MTPDateTime, datetime.datetime.now()),
+    'keywords' / Default(MTPString, u''),
 )
 
 class ObjectManager(Properties):
@@ -40,14 +40,22 @@ class ObjectManager(Properties):
 
         key_error = MTPError('INVALID_OBJECT_HANDLE')
 
-        def __init__(self, handle, filename, parent):
+        def __init__(self, storage_id, handle, filename, is_dir, parent):
+            self._storage_id = storage_id
             self._handle = handle
             self._filename = filename
+            self._is_dir = is_dir
             self._parent = parent
-            print(self._handle, self._filename, self._parent)
+            print(self._handle, self._filename, self._is_dir, self._parent)
 
-        #def build(self):
-        #    return ObjectInfo.build(dict(max_capacity=1000000000, free_space=100000000, volume_identifier=self.__name, storage_description=self.__path))
+
+        def build(self):
+            return ObjectInfo.build(dict(
+                storage_id = self._storage_id,
+                parent_object = self._parent,
+                filename = self._filename,
+                association_type = 'GENERIC_FOLDER' if self._is_dir else 'UNDEFINED'
+            ))
 
     def __init__(self, *args):
         super().__init__(self.__Object, *((next(self.counter),) + t for t in args))

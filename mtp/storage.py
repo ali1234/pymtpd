@@ -43,7 +43,7 @@ class StorageManager(Properties):
 
         def dirscan(self, path, parent_id):
             for fz in path.iterdir():
-                id = self.__objects.add(fz.name, parent_id)
+                id = self.__objects.add(self.__id, fz.name, fz.is_dir(), parent_id)
                 if fz.is_dir():
                     self.dirscan(fz, id)
 
@@ -57,9 +57,19 @@ class StorageManager(Properties):
             else:
                 return (k for k, v in self.__objects.items() if v._parent == parent)
 
-    def handles(selfself, association):
+        def __getitem__(self, item):
+            return self.__objects[item]
+
+    def handles(self, association):
         return itertools.chain(s.handles(association) for s in self._props.values())
 
+    def object(self, object):
+        for s in self._props.values():
+            try:
+                return s[object]
+            except MTPError:
+                continue
+        raise MTPError('INVALID_OBJECT_HANDLE')
 
     def __init__(self, *args):
         super().__init__(self.__Storage, *((n+0x00010001,) + t for (n, t) in enumerate(args)))
