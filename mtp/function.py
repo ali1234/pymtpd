@@ -106,13 +106,6 @@ class MTPFunction(functionfs.Function):
             self.close()
             raise
 
-    def __enter__(self):
-        print('HELLO')
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        print('GOODBYE', self._ep_list)
-        super().__exit__(exc_type, exc_value, traceback)
-
     def processEventsForever(self):
         while True:
             (r, w, x) = select.select([self.ep0, self.outep], [], [])
