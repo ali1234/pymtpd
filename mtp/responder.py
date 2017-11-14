@@ -4,7 +4,7 @@ from mtp.exceptions import MTPError
 from mtp.device import DeviceInfo, DeviceProperties, DevicePropertyCode
 from mtp.packets import MTPOperation, MTPResponse, MTPData, DataType
 from mtp.storage import StorageManager
-from mtp.object import ObjectManager
+
 
 operations = {}
 
@@ -78,7 +78,6 @@ class MTPResponder(object):
         self.storage = StorageManager(
             ('/tmp/mtp', u'Files', True)
         )
-        self.objects = ObjectManager()
 
     def senddata(self, code, tx_id, data):
         # TODO: handle transfers bigger than one packet

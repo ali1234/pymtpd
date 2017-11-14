@@ -1,4 +1,5 @@
 import itertools
+import pathlib
 
 from construct import *
 
@@ -36,16 +37,25 @@ class StorageManager(Properties):
             self.__path = path
             self.__name = name
             self.__writable = writable
-            self.objects = ObjectManager()
+            self.__objects = ObjectManager()
+
+            self.dirscan(pathlib.Path(self.__path), 0xffffffff)
+
+        def dirscan(self, path, parent_id):
+            for fz in path.iterdir():
+                id = self.__objects.add(fz.name, parent_id)
+                if fz.is_dir():
+                    self.dirscan(fz, id)
+
 
         def build(self):
             return StorageInfo.build(dict(max_capacity=1000000000, free_space=100000000, volume_identifier=self.__name, storage_description=self.__path))
 
         def handles(self, association):
             if association == 0:
-                return self.objects.keys()
+                return self.__objects.keys()
             else:
-                return (k for k, v in self.objects.items() if v._association == association)
+                return (k for k, v in self.__objects.items() if v._parent == parent)
 
     def handles(selfself, association):
         return itertools.chain(s.handles(association) for s in self._props.values())
@@ -58,10 +68,7 @@ class StorageManager(Properties):
 
 if __name__ == '__main__':
     sm = StorageManager(
-        ('/tmp/boot', u'boot', True),
-        ('/tmp/mnt', u'mnt', False),
-        ('/tmp/asdjh', u'Hello', True),
-        ('/tmp/asalkdsh', u'Things', True),
+        ('/tmp/mtp', u'Files', True),
     )
 
     for k in sm.keys():

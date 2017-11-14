@@ -40,12 +40,19 @@ class ObjectManager(Properties):
 
         key_error = MTPError('INVALID_OBJECT_HANDLE')
 
-        def __init__(self, handle, association):
+        def __init__(self, handle, filename, parent):
             self._handle = handle
-            self._association = association
+            self._filename = filename
+            self._parent = parent
+            print(self._handle, self._filename, self._parent)
 
         #def build(self):
         #    return ObjectInfo.build(dict(max_capacity=1000000000, free_space=100000000, volume_identifier=self.__name, storage_description=self.__path))
 
     def __init__(self, *args):
         super().__init__(self.__Object, *((next(self.counter),) + t for t in args))
+
+    def add(self, *args):
+        id = next(self.counter)
+        self._props[id] = self._proptype(id, *args)
+        return id
