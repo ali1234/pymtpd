@@ -1,7 +1,9 @@
 from __future__ import print_function
 
-from mtp.device import DeviceInfo, DeviceProperties
-from mtp.packets import MTPOperation, MTPResponse, MTPData
+from mtp.exceptions import MTPError
+from mtp.device import DeviceInfo, DeviceProperties, DevicePropertyCode
+from mtp.packets import MTPOperation, MTPResponse, MTPData, DataType
+from mtp.storage import StorageManager
 
 operations = {}
 
@@ -71,6 +73,9 @@ class MTPResponder(object):
         self.properties = DeviceProperties(
             ('DEVICE_FRIENDLY_NAME', 'Whizzle'),
             ('SYNCHRONIZATION_PARTNER', '', True),
+        )
+        self.storage = StorageManager(
+            ('/tmp/mtp', u'Files', True)
         )
 
     def senddata(self, code, tx_id, data):
@@ -145,6 +150,13 @@ class MTPResponder(object):
             self.properties.reset()
         else:
             self.properties[DevicePropertyCode.decoding[p.p1]].reset()
+
+    @operation
+    @session
+    @sender
+    def GET_STORAGE_IDS(self, p):
+        data = DataType.formats['AUINT32'].build(list(self.storage.keys()))
+        return(data, ())
 
 
     def operations(self, code):
