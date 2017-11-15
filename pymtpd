@@ -36,6 +36,7 @@ class MTPGadget(mtp.Gadget):
         self.add_function_to_config('ffs.mtp', 'c.1')
 
         os.makedirs('/dev/mtp', exist_ok=True)
+        os.makedirs('/tmp/mtp', exist_ok=True)
         subprocess.call(['mount', '-c', '-t', 'functionfs', 'mtp', '/dev/mtp'])
 
         return self
