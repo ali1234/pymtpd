@@ -3,7 +3,7 @@ from __future__ import print_function
 from mtp.exceptions import MTPError
 from mtp.device import DeviceInfo, DeviceProperties, DevicePropertyCode
 from mtp.packets import MTPOperation, MTPResponse, MTPData, DataType
-from mtp.storage import StorageManager
+from mtp.storage import StorageManager, StorageInfo
 from mtp.object import ObjectInfo
 
 
@@ -176,9 +176,6 @@ class MTPResponder(object):
             num = len(self.storage.handles(p.p3))
         else:
             num = len(self.storage[p.p1].handles(p.p3))
-
-        print(p)
-        print(num)
         return (num, )
 
     @operation
@@ -191,9 +188,6 @@ class MTPResponder(object):
             data = DataType.formats['AUINT32'].build(list(self.storage.handles(p.p3)))
         else:
             data = DataType.formats['AUINT32'].build(list(self.storage[p.p1].handles(p.p3)))
-
-        print(p)
-        print(DataType.formats['AUINT32'].parse(data))
         return (data, ())
 
     @operation
@@ -201,8 +195,6 @@ class MTPResponder(object):
     @session
     def GET_OBJECT_INFO(self, p):
         data = self.storage.object(p.p1).build()
-        print(p)
-        print(ObjectInfo.parse(data))
         return (data, ())
 
 
