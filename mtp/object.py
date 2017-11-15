@@ -39,9 +39,9 @@ class ObjectManager(Properties):
 
     class __Object(object):
 
-        key_error = MTPError('INVALID_OBJECT_HANDLE')
+        keyerror = MTPError('INVALID_OBJECT_HANDLE')
 
-        def __init__(self, storage_id, handle, filename, is_dir, parent):
+        def __init__(self, handle, storage_id, filename, is_dir, parent):
             self._storage_id = storage_id
             self._handle = handle
             self._filename = filename
