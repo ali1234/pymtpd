@@ -101,7 +101,7 @@ class MTPResponder(object):
     def respond(self, code, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
         args = locals()
         del args['self']
-        logger.info(' '.join(str(x) for x in ('Response:', args['code'], args['p1'], args['p2'], args['p3'], args['p4'], args['p5'])))
+        logger.debug(' '.join(str(x) for x in ('Response:', args['code'], args['p1'], args['p2'], args['p3'], args['p4'], args['p5'])))
         self.inep.write(MTPResponse.build(args))
 
 
@@ -233,7 +233,7 @@ class MTPResponder(object):
         except BrokenPipeError:
             return
         p = MTPOperation.parse(buf)
-        logger.info(' '.join(str(x) for x in ('Operation:', p.code, p.p1, p.p2, p.p3, p.p4, p.p5)))
+        logger.debug(' '.join(str(x) for x in ('Operation:', p.code, p.p1, p.p2, p.p3, p.p4, p.p5)))
 
         try:
             self.respond('OK', p.tx_id, *self.operations(p.code)(self, p))
