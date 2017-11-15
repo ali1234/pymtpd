@@ -1,5 +1,8 @@
 from __future__ import print_function
 
+import logging
+logger = logging.getLogger(__name__)
+
 from mtp.exceptions import MTPError
 from mtp.device import DeviceInfo, DeviceProperties, DevicePropertyCode
 from mtp.packets import MTPOperation, MTPResponse, MTPData, DataType
@@ -98,6 +101,7 @@ class MTPResponder(object):
     def respond(self, code, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
         args = locals()
         del args['self']
+        logger.info(' '.join(str(x) for x in ('Response:', args['code'], args['p1'], args['p2'], args['p3'], args['p4'], args['p5'])))
         self.inep.write(MTPResponse.build(args))
 
 
@@ -229,10 +233,11 @@ class MTPResponder(object):
         except BrokenPipeError:
             return
         p = MTPOperation.parse(buf)
+        logger.info(' '.join(str(x) for x in ('Operation:', p.code, p.p1, p.p2, p.p3, p.p4, p.p5)))
 
         try:
             self.respond('OK', p.tx_id, *self.operations(p.code)(self, p))
         except MTPError as e:
-            print('MTPError:', e)
-            print('Operation', p)
+            logger.warning(' '.join(str(x) for x in ('Operation:', p.code, p.p1, p.p2, p.p3, p.p4, p.p5)))
+            logger.warning(' '.join(str(x) for x in ('MTPError:', e)))
             self.respond(e.code, p.tx_id, *e.params)

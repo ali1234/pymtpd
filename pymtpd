@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, subprocess
+import os, subprocess, logging
 
 import mtp
 
@@ -70,6 +70,17 @@ class MTPGadget(mtp.Gadget):
 
 
 if __name__ == '__main__':
+
+    import argparse
+
+    parser = argparse.ArgumentParser(description='MTP Daemon.')
+    parser.add_argument('--log-level', type=str, help='CRITICAL, ERROR, WARNING, INFO, DEBUG', default='WARN')
+    args = parser.parse_args()
+
+    numeric_level = getattr(logging, args.log_level.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError('Invalid log level: %s' % args.log_level)
+    logging.basicConfig(level=numeric_level)
 
     with MTPGadget(name='g1', vid='0x0430', pid='0xa4a2') as g:
         with mtp.MTPFunction('/dev/mtp') as function:
