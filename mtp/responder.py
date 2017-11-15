@@ -188,7 +188,10 @@ class MTPResponder(object):
     def handleOneOperation(self):
 
         buf = bytearray(512)
-        self.outep.readinto(buf)
+        try:
+            self.outep.readinto(buf)
+        except BrokenPipeError:
+            return
         p = MTPOperation.parse(buf)
 
         try:
