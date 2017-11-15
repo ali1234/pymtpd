@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, stat, time, subprocess
+import os, subprocess
 
 import mtp
 
@@ -23,16 +23,16 @@ class MTPGadget(mtp.Gadget):
         self.gadget.strings['0x409'].manufacturer = 'Foo Inc.'
         self.gadget.strings['0x409'].product = 'Whizzotron'
 
-        self.gadget.functions['rndis.usb0'].os_desc['interface.rndis'].compatible_id = 'RNDIS'
-        self.gadget.functions['rndis.usb0'].os_desc['interface.rndis'].sub_compatible_id = '5162001'
+        #self.gadget.functions['rndis.usb0'].os_desc['interface.rndis'].compatible_id = 'RNDIS'
+        #self.gadget.functions['rndis.usb0'].os_desc['interface.rndis'].sub_compatible_id = '5162001'
 
         self.gadget.configs['c.1'].strings['0x409'].configuration = 'mtp test'
 
-        self.add_function_to_config('rndis.usb0', 'c.1')
-        self.add_function_to_config('acm.GS0', 'c.1')
-        self.add_function_to_config('acm.GS1', 'c.1')
-        self.add_function_to_config('acm.GS2', 'c.1')
-        self.add_function_to_config('acm.GS3', 'c.1')
+        #self.add_function_to_config('rndis.usb0', 'c.1')
+        #self.add_function_to_config('acm.GS0', 'c.1')
+        #self.add_function_to_config('acm.GS1', 'c.1')
+        #self.add_function_to_config('acm.GS2', 'c.1')
+        #self.add_function_to_config('acm.GS3', 'c.1')
         self.add_function_to_config('ffs.mtp', 'c.1')
 
         os.makedirs('/dev/mtp', exist_ok=True)
@@ -48,20 +48,20 @@ class MTPGadget(mtp.Gadget):
             print('Can\'t teardown gadget because functonfs is still in use.')
             return
 
-        self.remove_function_from_config('rndis.usb0', 'c.1')
-        self.remove_function_from_config('acm.GS0', 'c.1')
-        self.remove_function_from_config('acm.GS1', 'c.1')
-        self.remove_function_from_config('acm.GS2', 'c.1')
-        self.remove_function_from_config('acm.GS3', 'c.1')
+        #self.remove_function_from_config('rndis.usb0', 'c.1')
+        #self.remove_function_from_config('acm.GS0', 'c.1')
+        #self.remove_function_from_config('acm.GS1', 'c.1')
+        #self.remove_function_from_config('acm.GS2', 'c.1')
+        #self.remove_function_from_config('acm.GS3', 'c.1')
         self.remove_function_from_config('ffs.mtp', 'c.1')
 
         del self.gadget.configs['c.1'].strings['0x409']
         del self.gadget.configs['c.1']
-        del self.gadget.functions['rndis.usb0']
-        del self.gadget.functions['acm.GS0']
-        del self.gadget.functions['acm.GS1']
-        del self.gadget.functions['acm.GS2']
-        del self.gadget.functions['acm.GS3']
+        #del self.gadget.functions['rndis.usb0']
+        #del self.gadget.functions['acm.GS0']
+        #del self.gadget.functions['acm.GS1']
+        #del self.gadget.functions['acm.GS2']
+        #del self.gadget.functions['acm.GS3']
         del self.gadget.functions['ffs.mtp']
         del self.gadget.strings['0x409']
 
