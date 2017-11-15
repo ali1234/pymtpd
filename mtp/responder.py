@@ -177,7 +177,7 @@ class MTPResponder(object):
     @operation
     @sender
     @session
-    def GET_OBJECT(selfself, p):
+    def GET_OBJECT(self, p):
         data = self.storage.object(p.p1).raw()
         return (data, ())
 
