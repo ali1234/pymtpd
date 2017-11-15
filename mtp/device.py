@@ -78,3 +78,13 @@ class DeviceProperties(Properties):
     def reset(self):
         for p in self._props:
             p.reset(force=True)
+
+
+if __name__ == '__main__':
+    p = DeviceProperties(
+        ('DEVICE_FRIENDLY_NAME', 'Some Name', True),
+    )
+
+    print(p['DEVICE_FRIENDLY_NAME'].build())
+    print(p['DEVICE_FRIENDLY_NAME'].builddesc())
+    
