@@ -163,6 +163,8 @@ class MTPResponder(object):
             data = DataType.formats['AUINT32'].build(list(self.storage.handles(p.p3)))
         else:
             data = DataType.formats['AUINT32'].build(list(self.storage[p.p1].handles(p.p3)))
+
+        logger.debug(' '.join(str(x) for x in ('Data:', *DataType.formats['AUINT32'].parse(data))))
         return (data, ())
 
     @operation
@@ -233,11 +235,11 @@ class MTPResponder(object):
         except BrokenPipeError:
             return
         p = MTPOperation.parse(buf)
-        logger.debug(' '.join(str(x) for x in ('Operation:', p.code, p.p1, p.p2, p.p3, p.p4, p.p5)))
+        logger.debug(' '.join(str(x) for x in ('Operation:', p.code, hex(p.p1), hex(p.p2), hex(p.p3), hex(p.p4), hex(p.p5))))
 
         try:
             self.respond('OK', p.tx_id, *self.operations(p.code)(self, p))
         except MTPError as e:
-            logger.warning(' '.join(str(x) for x in ('Operation:', p.code, p.p1, p.p2, p.p3, p.p4, p.p5)))
+            logger.warning(' '.join(str(x) for x in ('Operation:', p.code, hex(p.p1), hex(p.p2), hex(p.p3), hex(p.p4), hex(p.p5))))
             logger.warning(' '.join(str(x) for x in ('MTPError:', e)))
             self.respond(e.code, p.tx_id, *e.params)

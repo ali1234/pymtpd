@@ -51,7 +51,7 @@ class StorageManager(Properties):
 
 
         def build(self):
-            return StorageInfo.build(dict(max_capacity=1000000000, free_space=100000000, volume_identifier=self.__name, storage_description=self.__path))
+            return StorageInfo.build(dict(max_capacity=1000000000, free_space=100000000, volume_identifier=self.__name, storage_description=self.__name))
 
         def handles(self, parent):
             if parent == 0:
