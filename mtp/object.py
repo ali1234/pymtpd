@@ -58,8 +58,11 @@ class ObjectManager(Properties):
                 association_type = 'GENERIC_FOLDER' if self._is_dir else 'UNDEFINED'
             ))
 
-    def __init__(self, *args):
-        super().__init__(self.__Object, *((next(self.counter),) + t for t in args))
+    def __init__(self):
+        super().__init__(self.__Object)
+
+    def handles(self, parent):
+        return (k for k, v in self._props.items() if v._parent == parent)
 
     def add(self, *args):
         id = next(self.counter)
