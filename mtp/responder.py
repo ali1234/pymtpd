@@ -4,6 +4,7 @@ from mtp.exceptions import MTPError
 from mtp.device import DeviceInfo, DeviceProperties, DevicePropertyCode
 from mtp.packets import MTPOperation, MTPResponse, MTPData, DataType
 from mtp.storage import StorageManager
+from mtp.object import ObjectInfo
 
 
 operations = {}
@@ -162,13 +163,37 @@ class MTPResponder(object):
     @operation
     @sender
     @session
+    def GET_STORAGE_INFO(self, p):
+        data = self.storage[p.p1].build()
+        return (data, ())
+
+    @operation
+    @session
+    def GET_NUM_OBJECTS(self, p):
+        if p.p2 != 0:
+            raise MTPError('SPECIFICATION_BY_FORMAT_UNSUPPORTED')
+        if p.p1 == 0xffffffff: # all storage
+            num = len(self.storage.handles(p.p3))
+        else:
+            num = len(self.storage[p.p1].handles(p.p3))
+
+        print(p)
+        print(num)
+        return (num, )
+
+    @operation
+    @sender
+    @session
     def GET_OBJECT_HANDLES(self, p):
         if p.p2 != 0:
             raise MTPError('SPECIFICATION_BY_FORMAT_UNSUPPORTED')
-        if p.p1 == 0xffffffff:
+        if p.p1 == 0xffffffff: # all storage
             data = DataType.formats['AUINT32'].build(list(self.storage.handles(p.p3)))
         else:
             data = DataType.formats['AUINT32'].build(list(self.storage[p.p1].handles(p.p3)))
+
+        print(p)
+        print(DataType.formats['AUINT32'].parse(data))
         return (data, ())
 
     @operation
@@ -176,6 +201,8 @@ class MTPResponder(object):
     @session
     def GET_OBJECT_INFO(self, p):
         data = self.storage.object(p.p1).build()
+        print(p)
+        print(ObjectInfo.parse(data))
         return (data, ())
 
 

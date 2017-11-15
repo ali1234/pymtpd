@@ -39,7 +39,7 @@ class StorageManager(Properties):
             self.__writable = writable
             self.__objects = ObjectManager()
 
-            self.dirscan(pathlib.Path(self.__path), 0xffffffff)
+            self.dirscan(pathlib.Path(self.__path), 0x0) # objects in root dir have parent=0
 
         def dirscan(self, path, parent_id):
             for fz in path.iterdir():
@@ -51,17 +51,21 @@ class StorageManager(Properties):
         def build(self):
             return StorageInfo.build(dict(max_capacity=1000000000, free_space=100000000, volume_identifier=self.__name, storage_description=self.__path))
 
-        def handles(self, association):
-            if association == 0:
+        def handles(self, parent):
+            if parent == 0:
                 return self.__objects.keys()
+            elif parent == 0xffffffff: # yes, the spec is really dumb
+                return self.__objects.handles(0)
             else:
-                return (k for k, v in self.__objects.items() if v._parent == parent)
+                if not self._objects[parent]._is_dir:
+                    raise MTPError("INVALID_PARENT_OBJECT")
+                return self.__objects.handles(parent)
 
         def __getitem__(self, item):
             return self.__objects[item]
 
-    def handles(self, association):
-        return itertools.chain(s.handles(association) for s in self._props.values())
+    def handles(self, parent):
+        return itertools.chain(s.handles(parent) for s in self._props.values())
 
     def object(self, object):
         for s in self._props.values():
