@@ -59,6 +59,7 @@ class ObjectManager(Properties):
                 storage_id = self._storage_id,
                 parent_object = self._parent,
                 filename = self._filename,
+                format = 'ASSOCIATION' if self._is_dir else 'UNDEFINED',
                 association_type = 'GENERIC_FOLDER' if self._is_dir else 'UNDEFINED'
             ))
 

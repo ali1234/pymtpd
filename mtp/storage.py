@@ -1,5 +1,7 @@
 import itertools
 import pathlib
+import logging
+logger = logging.getLogger(__name__)
 
 from construct import *
 
@@ -57,7 +59,7 @@ class StorageManager(Properties):
             elif parent == 0xffffffff: # yes, the spec is really dumb
                 return self.__objects.handles(0)
             else:
-                if not self._objects[parent]._is_dir:
+                if not self.__objects[parent]._is_dir:
                     raise MTPError("INVALID_PARENT_OBJECT")
                 return self.__objects.handles(parent)
 
