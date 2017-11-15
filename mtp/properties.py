@@ -12,4 +12,7 @@ class Properties(object):
         try:
             return self._props[code]
         except KeyError:
-            raise self._proptype.keyerror
+            if hasattr(self._proptype, 'keyerror'):
+                raise self._proptype.keyerror
+            else:
+                raise
