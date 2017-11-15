@@ -127,35 +127,6 @@ class MTPResponder(object):
     @operation
     @sender
     @session
-    def GET_DEVICE_PROP_DESC(self, p):
-        data = self.properties[DevicePropertyCode.decoding[p.p1]].builddesc()
-        return (data, ())
-
-    @operation
-    @sender
-    @session
-    def GET_DEVICE_PROP_VALUE(self, p):
-        data = self.properties[DevicePropertyCode.decoding[p.p1]].build()
-        return (data, ())
-
-    @operation
-    @receiver
-    @session
-    def SET_DEVICE_PROP_VALUE(self, p, data):
-        self.properties[DevicePropertyCode.decoding[p.p1]].parse(data)
-        return ()
-
-    @operation
-    @session
-    def RESET_DEVICE_PROP_VALUE(selfself, p):
-        if p.p1 == 0xffffffff:
-            self.properties.reset()
-        else:
-            self.properties[DevicePropertyCode.decoding[p.p1]].reset()
-
-    @operation
-    @sender
-    @session
     def GET_STORAGE_IDS(self, p):
         data = DataType.formats['AUINT32'].build(list(self.storage.keys()))
         return(data, ())
@@ -196,6 +167,47 @@ class MTPResponder(object):
     def GET_OBJECT_INFO(self, p):
         data = self.storage.object(p.p1).build()
         return (data, ())
+
+    #TODO: GET_OBJECT
+
+    #TODO: DELETE_OBJECT
+
+    #TODO: SEND_OBJECT_INFO
+
+    #TODO: SEND_OBJECT
+
+    @operation
+    @sender
+    @session
+    def GET_DEVICE_PROP_DESC(self, p):
+        data = self.properties[DevicePropertyCode.decoding[p.p1]].builddesc()
+        return (data, ())
+
+    @operation
+    @sender
+    @session
+    def GET_DEVICE_PROP_VALUE(self, p):
+        data = self.properties[DevicePropertyCode.decoding[p.p1]].build()
+        return (data, ())
+
+    @operation
+    @receiver
+    @session
+    def SET_DEVICE_PROP_VALUE(self, p, data):
+        self.properties[DevicePropertyCode.decoding[p.p1]].parse(data)
+        return ()
+
+    @operation
+    @session
+    def RESET_DEVICE_PROP_VALUE(selfself, p):
+        if p.p1 == 0xffffffff:
+            self.properties.reset()
+        else:
+            self.properties[DevicePropertyCode.decoding[p.p1]].reset()
+
+
+
+
 
 
     def operations(self, code):
