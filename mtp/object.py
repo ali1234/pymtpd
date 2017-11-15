@@ -49,6 +49,10 @@ class ObjectManager(Properties):
             self._parent = parent
             print(self._handle, self._filename, self._is_dir, self._parent)
 
+        def raw(self):
+            if self._is_dir:
+                raise MTPError("INVALID_OBJECT_HANDLE")
+            return b'***FILE CONTENTS GOES HERE***'
 
         def build(self):
             return ObjectInfo.build(dict(

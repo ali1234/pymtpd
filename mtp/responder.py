@@ -168,7 +168,12 @@ class MTPResponder(object):
         data = self.storage.object(p.p1).build()
         return (data, ())
 
-    #TODO: GET_OBJECT
+    @operation
+    @sender
+    @session
+    def GET_OBJECT(selfself, p):
+        data = self.storage.object(p.p1).raw()
+        return (data, ())
 
     #TODO: DELETE_OBJECT
 
