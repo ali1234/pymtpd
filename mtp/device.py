@@ -2,7 +2,6 @@ from construct import *
 
 from mtp import constants
 from mtp.exceptions import MTPError
-from mtp.properties import Properties
 from mtp.packets import EventCode, OperationCode, DataType
 from mtp.object import FormatType
 from mtp.adapters import MTPString
@@ -38,46 +37,59 @@ DevicePropertyDesc = Struct(
     'form' / Const(Byte, 0),
 )
 
-class DeviceProperties(Properties):
-    class __DeviceProperty(object):
-        keyerror = MTPError('DEVICE_PROP_NOT_SUPPORTED')
 
-        def __init__(self, code, default, writable=False):
-            self.__code = code
-            self.__default = default
-            self.__current = default
-            self.__writable = writable
+class DeviceProperty(object):
 
-        def set(self, value):
-            self.__current = value
+    def __init__(self, code, default, writable=False):
+        self.__code = code
+        self.__default = default
+        self.__current = default
+        self.__writable = writable
 
-        def reset(self, force=False):
-            if not force and not self.__writable:
-                raise MTPError('ACCESS_DENIED')
-            self.__current = self.__default
+    def set(self, value):
+        self.__current = value
 
-        def parse(self, value):
-            if not self.__writable:
-                raise MTPError('ACCESS_DENIED')
-            self.__current = DevicePropertyCode.formats[self.__code].parse(value)
+    def reset(self, force=False):
+        if not force and not self.__writable:
+            raise MTPError('ACCESS_DENIED')
+        self.__current = self.__default
 
-        def build(self):
-            return DevicePropertyCode.formats[self.__code].build(self.__current)
+    def parse(self, value):
+        if not self.__writable:
+            raise MTPError('ACCESS_DENIED')
+        self.__current = DevicePropertyCode.formats[self.__code].parse(value)
 
-        def builddesc(self):
-            return DevicePropertyDesc.build(dict(
-                code=self.__code,
-                writable=self.__writable,
-                default=self.__default,
-                current=self.__current,
-            ))
+    def build(self):
+        return DevicePropertyCode.formats[self.__code].build(self.__current)
+
+    def builddesc(self):
+        return DevicePropertyDesc.build(dict(
+            code=self.__code,
+            writable=self.__writable,
+            default=self.__default,
+            current=self.__current,
+        ))
+
+
+class DeviceProperties(object):
 
     def __init__(self, *args):
-        super().__init__(self.__DeviceProperty, *args)
+        self.__props = dict()
+        for arg in args:
+            self.__props[arg[0]] = DeviceProperty(*arg)
+
+    def supported(self):
+        return sorted(self.__props.keys(), key=lambda p: DevicePropertyCode.encoding[p])
 
     def reset(self):
-        for p in self._props:
+        for p in self.__props:
             p.reset(force=True)
+
+    def __getitem__(self, key):
+        try:
+            return self.__props[key]
+        except KeyError:
+            raise MTPError('DEVICE_PROP_NOT_SUPPORTED')
 
 
 if __name__ == '__main__':

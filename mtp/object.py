@@ -7,7 +7,6 @@ from construct import *
 
 import mtp.constants
 from mtp.exceptions import MTPError
-from mtp.properties import Properties
 from mtp.adapters import MTPString, MTPDateTime
 
 FormatType = Enum(Int16ul, **dict(mtp.constants.format_types))

@@ -109,7 +109,7 @@ class MTPResponder(object):
     @sender
     def GET_DEVICE_INFO(self, p):
         data = DeviceInfo.build(dict(
-                 device_properties_supported=sorted(self.properties.keys(), key=lambda p: DevicePropertyCode.encoding[p]),
+                 device_properties_supported=self.properties.supported(),
                  operations_supported=sorted(operations.keys(), key=lambda o: OperationCode.encoding[o]),
                ))
         return (data, ())
@@ -132,7 +132,7 @@ class MTPResponder(object):
     @sender
     @session
     def GET_STORAGE_IDS(self, p):
-        data = DataType.formats['AUINT32'].build(list(self.storage.keys()))
+        data = DataType.formats['AUINT32'].build(list(self.storage.ids()))
         return(data, ())
 
     @operation
