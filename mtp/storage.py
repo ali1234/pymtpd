@@ -35,19 +35,19 @@ class StorageManager(Properties):
         keyerror = MTPError('STORE_NOT_AVAILABLE')
 
         def __init__(self, id, path, name, writable=False):
-            self.__id = id
-            self.__path = path
+            self._id = id
+            self._path = pathlib.Path(path)
             self.__name = name
             self.__writable = writable
             self.__objects = ObjectManager()
 
-            self.dirscan(pathlib.Path(self.__path), 0x0) # objects in root dir have parent=0
+            self.dirscan(self._path, None) # objects in root dir have parent=0
 
-        def dirscan(self, path, parent_id):
+        def dirscan(self, path, parent):
             for fz in path.iterdir():
-                id = self.__objects.add(self.__id, fz.name, fz.is_dir(), parent_id)
+                obj = self.__objects.add(self, fz.name, fz.is_dir(), parent)
                 if fz.is_dir():
-                    self.dirscan(fz, id)
+                    self.dirscan(fz, obj)
 
 
         def build(self):
@@ -57,11 +57,14 @@ class StorageManager(Properties):
             if parent == 0:
                 return self.__objects.keys()
             elif parent == 0xffffffff: # yes, the spec is really dumb
-                return self.__objects.handles(0)
+                return self.__objects.handles(None)
             else:
-                if not self.__objects[parent]._is_dir:
+                try:
+                    p = self.__objects[parent]
+                except KeyError:
                     raise MTPError("INVALID_PARENT_OBJECT")
-                return self.__objects.handles(parent)
+                else:
+                    return self.__objects.handles(p)
 
         def __getitem__(self, item):
             return self.__objects[item]

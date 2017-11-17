@@ -1,4 +1,8 @@
 import itertools, datetime
+
+import logging
+logger = logging.getLogger(__name__)
+
 from construct import *
 
 import mtp.constants
@@ -41,13 +45,13 @@ class ObjectManager(Properties):
 
         keyerror = MTPError('INVALID_OBJECT_HANDLE')
 
-        def __init__(self, handle, storage_id, filename, is_dir, parent):
-            self._storage_id = storage_id
+        def __init__(self, handle, storage, filename, is_dir, parent):
+            self._storage = storage
             self._handle = handle
             self._filename = filename
             self._is_dir = is_dir
             self._parent = parent
-            print(self._handle, self._filename, self._is_dir, self._parent)
+            logger.debug(self.reconstruct_path())
 
         def raw(self):
             if self._is_dir:
@@ -56,12 +60,18 @@ class ObjectManager(Properties):
 
         def build(self):
             return ObjectInfo.build(dict(
-                storage_id = self._storage_id,
-                parent_object = self._parent,
+                storage_id = self._storage._id,
+                parent_object = 0 if self._parent is None else self._parent._handle,
                 filename = self._filename,
                 format = 'ASSOCIATION' if self._is_dir else 'UNDEFINED',
                 association_type = 'GENERIC_FOLDER' if self._is_dir else 'UNDEFINED'
             ))
+
+        def reconstruct_path(self):
+            if self._parent == None:
+                return self._storage._path / self._filename
+            else:
+                return self._parent.reconstruct_path() / self._filename
 
     def __init__(self):
         super().__init__(self.__Object)
@@ -71,5 +81,6 @@ class ObjectManager(Properties):
 
     def add(self, *args):
         id = next(self.counter)
-        self._props[id] = self._proptype(id, *args)
-        return id
+        obj = self._proptype(id, *args)
+        self._props[id] = obj
+        return obj
