@@ -9,7 +9,8 @@ import mtp.constants
 from mtp.adapters import MTPString
 from mtp.exceptions import MTPError
 from mtp.properties import Properties
-from mtp.object import ObjectManager
+from mtp.object import Object
+
 
 
 StorageType = Enum(Int16ul, **dict(mtp.constants.storage_types))
@@ -39,13 +40,14 @@ class StorageManager(Properties):
             self._path = pathlib.Path(path)
             self.__name = name
             self.__writable = writable
-            self.__objects = ObjectManager()
+            self.__objects = dict()
 
             self.dirscan(self._path, None) # objects in root dir have parent=0
 
         def dirscan(self, path, parent):
             for fz in path.iterdir():
-                obj = self.__objects.add(self, fz.name, fz.is_dir(), parent)
+                obj = Object(self, fz.name, fz.is_dir(), parent)
+                self.__objects[obj._handle] = obj
                 if fz.is_dir():
                     self.dirscan(fz, obj)
 
@@ -57,23 +59,23 @@ class StorageManager(Properties):
             if parent == 0:
                 return self.__objects.keys()
             elif parent == 0xffffffff: # yes, the spec is really dumb
-                return self.__objects.handles(None)
+                return (k for k, v in self.__objects.items() if v._parent == None)
             else:
                 try:
                     p = self.__objects[parent]
                 except KeyError:
                     raise MTPError("INVALID_PARENT_OBJECT")
                 else:
-                    return self.__objects.handles(p)
+                    return (k for k, v in self.__objects.items() if v._parent == p)
 
         def __getitem__(self, item):
             return self.__objects[item]
 
     def handles(self, parent):
-        return itertools.chain(s.handles(parent) for s in self._props.values())
+        return itertools.chain(s.handles(parent) for s in self.values())
 
     def object(self, object):
-        for s in self._props.values():
+        for s in self.values():
             try:
                 return s[object]
             except MTPError:

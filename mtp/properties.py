@@ -8,6 +8,12 @@ class Properties(object):
     def keys(self):
         return self._props.keys()
 
+    def values(self):
+        return self._props.values()
+
+    def items(self):
+        return self._props.items()
+
     def __getitem__(self, code):
         try:
             return self._props[code]
