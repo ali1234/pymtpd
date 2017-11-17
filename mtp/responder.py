@@ -210,7 +210,7 @@ class MTPResponder(object):
 
     @operation
     @session
-    def RESET_DEVICE_PROP_VALUE(selfself, p):
+    def RESET_DEVICE_PROP_VALUE(self, p):
         if p.p1 == 0xffffffff:
             self.properties.reset()
         else:
