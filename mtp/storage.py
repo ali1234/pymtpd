@@ -69,7 +69,10 @@ class StorageManager(Properties):
                     return (k for k, v in self.__objects.items() if v._parent == p)
 
         def __getitem__(self, item):
-            return self.__objects[item]
+            try:
+                return self.__objects[item]
+            except KeyError:
+                raise MTPError('INVALID_OBJECT_HANDLE')
 
     def handles(self, parent):
         return itertools.chain(s.handles(parent) for s in self.values())
