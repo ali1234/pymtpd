@@ -40,7 +40,6 @@ ObjectInfo = Struct(
 class Object(object):
 
     counter = itertools.count(1) # start object IDs from 1
-    keyerror = MTPError('INVALID_OBJECT_HANDLE')
 
     def __init__(self, storage, filename, is_dir, parent):
         self._storage = storage
