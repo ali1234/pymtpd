@@ -53,14 +53,10 @@ class ObjectManager(Properties):
             self._parent = parent
             logger.debug(self.reconstruct_path())
 
-        def raw(self):
-            if self._is_dir:
-                raise MTPError("INVALID_OBJECT_HANDLE")
-            return b'***FILE CONTENTS GOES HERE***'
-
         def build(self):
             return ObjectInfo.build(dict(
                 storage_id = self._storage._id,
+                compressed_size = self.stat().st_size,
                 parent_object = 0 if self._parent is None else self._parent._handle,
                 filename = self._filename,
                 format = 'ASSOCIATION' if self._is_dir else 'UNDEFINED',
@@ -72,6 +68,12 @@ class ObjectManager(Properties):
                 return self._storage._path / self._filename
             else:
                 return self._parent.reconstruct_path() / self._filename
+
+        def open(self, mode):
+            return open(self.reconstruct_path(), mode)
+
+        def stat(self):
+            return self.reconstruct_path().stat()
 
     def __init__(self):
         super().__init__(self.__Object)

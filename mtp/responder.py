@@ -178,8 +178,8 @@ class MTPResponder(object):
     @sender
     @session
     def GET_OBJECT(self, p):
-        data = self.storage.object(p.p1).raw()
-        return (data, ())
+        f = self.storage.object(p.p1).open(mode='rb')
+        return (f.read(), ())
 
     #TODO: DELETE_OBJECT
 
