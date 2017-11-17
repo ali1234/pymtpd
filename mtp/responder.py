@@ -229,11 +229,7 @@ class MTPResponder(object):
 
     def handleOneOperation(self):
 
-        buf = bytearray(512)
-        try:
-            self.outep.readinto(buf)
-        except BrokenPipeError:
-            return
+        buf = self.outep.read()
         p = MTPOperation.parse(buf)
         logger.debug(' '.join(str(x) for x in ('Operation:', p.code, hex(p.p1), hex(p.p2), hex(p.p3), hex(p.p4), hex(p.p5))))
 

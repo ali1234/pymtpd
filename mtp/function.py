@@ -5,6 +5,7 @@ import select
 import functionfs
 import functionfs.ch9
 
+from mtp.kaio import KAIOReader
 from .responder import MTPResponder
 
 FS_BULK_MAX_PACKET_SIZE = 64
@@ -91,7 +92,7 @@ class MTPFunction(functionfs.Function):
             assert len(self._ep_list) == 4
 
             self.inep = self._ep_list[1]
-            self.outep = self._ep_list[2]
+            self.outep = KAIOReader(self._ep_list[2])
             self.intep = self._ep_list[3]
 
             self.responder = MTPResponder(
@@ -106,7 +107,12 @@ class MTPFunction(functionfs.Function):
             self.close()
             raise
 
+    def close(self):
+        self.outep.close()
+        super().close()
+
     def processEventsForever(self):
+        self.outep.submit() # prime the first async read
         while True:
             (r, w, x) = select.select([self.ep0, self.outep], [], [])
             if self.ep0 in r:
