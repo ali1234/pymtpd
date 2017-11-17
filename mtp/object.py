@@ -48,7 +48,7 @@ class Object(object):
         self._filename = filename
         self._is_dir = is_dir
         self._parent = parent
-        logger.debug(self.reconstruct_path())
+        logger.debug(self.path())
 
     def build(self):
         return ObjectInfo.build(dict(
@@ -60,14 +60,14 @@ class Object(object):
             association_type='GENERIC_FOLDER' if self._is_dir else 'UNDEFINED'
         ))
 
-    def reconstruct_path(self):
+    def path(self):
         if self._parent == None:
             return self._storage._path / self._filename
         else:
-            return self._parent.reconstruct_path() / self._filename
+            return self._parent.path() / self._filename
 
     def open(self, mode):
-        return open(str(self.reconstruct_path()), mode)
+        return open(str(self.path()), mode)
 
     def stat(self):
-        return self.reconstruct_path().stat()
+        return self.path().stat()
