@@ -230,6 +230,8 @@ class MTPResponder(object):
     def handleOneOperation(self):
 
         buf = self.outep.read()
+        # TODO: parser can't handle short packets without p1-p5 args, so extend buffer with zeros.
+        buf += b'\x00'*(32-len(buf))
         p = MTPOperation.parse(buf)
         logger.debug(' '.join(str(x) for x in ('Operation:', p.code, hex(p.p1), hex(p.p2), hex(p.p3), hex(p.p4), hex(p.p5))))
 

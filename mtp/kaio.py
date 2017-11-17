@@ -139,9 +139,7 @@ class KAIOReader(object):
         #                struct io_event *events, struct timespec *timeout);
         ret = _libaio_call(_libaio.io_getevents, self.ctx, ctypes.c_long(1), ctypes.c_long(1), ctypes.byref(e), None)
         if ret == 1 :
-            # TODO: parser can't handle short packets without p1-p5 args. return at least 32 bytes to allow for this.
-            # The extra bytes might contain garbage data from previous operations, but protocol should ignore them.
-            tmp = bytes(self.buf[:max(e.res, 32)])
+            tmp = bytes(self.buf)
         else:
             raise Exception('This should never happen')
         self.submit() # prime a new read operation
