@@ -70,7 +70,7 @@ class ObjectManager(Properties):
                 return self._parent.reconstruct_path() / self._filename
 
         def open(self, mode):
-            return open(self.reconstruct_path(), mode)
+            return open(str(self.reconstruct_path()), mode)
 
         def stat(self):
             return self.reconstruct_path().stat()

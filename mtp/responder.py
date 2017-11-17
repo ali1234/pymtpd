@@ -216,9 +216,14 @@ class MTPResponder(object):
         else:
             self.properties[DevicePropertyCode.decoding[p.p1]].reset()
 
-
-
-
+    @operation
+    @sender
+    @session
+    def GET_PARTIAL_OBJECT(self, p):
+        f = self.storage.object(p.p1).open(mode='rb')
+        f.seek(p.p2, 0)
+        data = f.read(p.p3)
+        return (data, (len(data),))
 
 
     def operations(self, code):
