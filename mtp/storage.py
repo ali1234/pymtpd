@@ -42,9 +42,9 @@ class StorageManager(Properties):
             self.__writable = writable
             self.__objects = dict()
 
-            self.dirscan(self._path, None) # objects in root dir have parent=0
+            self.dirscan(self._path) # objects in root dir have no parent
 
-        def dirscan(self, path, parent):
+        def dirscan(self, path, parent=None):
             for fz in path.iterdir():
                 obj = Object(self, fz.name, fz.is_dir(), parent)
                 self.__objects[obj._handle] = obj
