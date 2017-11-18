@@ -50,7 +50,7 @@ class Storage(object):
         return StorageInfo.build(dict(max_capacity=1000000000, free_space=100000000, volume_identifier=self.__name,
                                       storage_description=self.__name))
 
-    def handles(self, parent):
+    def handles(self, parent=0):
         if parent == 0:
             return self.__objects.keys()
         elif parent == 0xffffffff:  # yes, the spec is really dumb
@@ -81,7 +81,7 @@ class StorageManager(object):
     def ids(self):
         return self.__stores.keys()
 
-    def handles(self, parent):
+    def handles(self, parent=0):
         return itertools.chain(s.handles(parent) for s in self.__stores.values())
 
     def object(self, handle):
@@ -106,5 +106,5 @@ if __name__ == '__main__':
         ('/tmp/mtp', u'Files', True),
     )
 
-    for k in sm.keys():
+    for k in sm.handles():
         print(k, StorageInfo.parse(sm[k].build()))
