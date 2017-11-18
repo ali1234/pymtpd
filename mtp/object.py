@@ -41,32 +41,24 @@ class Object(object):
 
     counter = itertools.count(1) # start object IDs from 1
 
-    def __init__(self, storage, filename, is_dir, parent):
+    def __init__(self, storage, path, parent):
         self._storage = storage
         self._handle = next(self.counter)
-        self._filename = filename
-        self._is_dir = is_dir
+        self._path = path
         self._parent = parent
-        logger.debug(self.path())
+        logger.debug(self._path)
 
     def build(self):
+        is_dir = self._path.is_dir()
         return ObjectInfo.build(dict(
             storage_id=self._storage._id,
-            compressed_size=self.stat().st_size,
+            compressed_size=self._path.stat().st_size,
             parent_object=0 if self._parent is None else self._parent._handle,
-            filename=self._filename,
-            format='ASSOCIATION' if self._is_dir else 'UNDEFINED',
-            association_type='GENERIC_FOLDER' if self._is_dir else 'UNDEFINED'
+            filename=self._path.name,
+            format='ASSOCIATION' if is_dir else 'UNDEFINED',
+            association_type='GENERIC_FOLDER' if is_dir else 'UNDEFINED'
         ))
 
-    def path(self):
-        if self._parent == None:
-            return self._storage._path / self._filename
-        else:
-            return self._parent.path() / self._filename
+    def open(self, *args):
+        return self._path.open(*args)
 
-    def open(self, mode):
-        return open(str(self.path()), mode)
-
-    def stat(self):
-        return self.path().stat()

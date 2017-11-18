@@ -41,7 +41,7 @@ class Storage(object):
 
     def dirscan(self, path, parent=None):
         for fz in path.iterdir():
-            obj = Object(self, fz.name, fz.is_dir(), parent)
+            obj = Object(self, fz, parent)
             self.__objects[obj._handle] = obj
             if fz.is_dir():
                 self.dirscan(fz, obj)
