@@ -30,8 +30,10 @@ StorageInfo = Struct(
 
 class Storage(object):
 
-    def __init__(self, id, path, name, writable=False):
-        self._id = id
+    counter = itertools.count(0x10001)
+
+    def __init__(self, path, name, writable=False):
+        self._id = next(self.counter)
         self._path = pathlib.Path(path)
         self.__name = name
         self.__writable = writable
@@ -74,9 +76,9 @@ class StorageManager(object):
 
     def __init__(self, *args):
         self.__stores = dict()
-        for n,arg in enumerate(args):
-            storage_id = n+0x00010001
-            self.__stores[storage_id] = Storage(storage_id, *arg)
+        for arg in args:
+            s = Storage(*arg)
+            self.__stores[s._id] = s
 
     def ids(self):
         return self.__stores.keys()
