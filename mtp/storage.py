@@ -74,10 +74,9 @@ class Storage(object):
 
 class StorageManager(object):
 
-    def __init__(self, *args):
+    def __init__(self, *stores):
         self.__stores = dict()
-        for arg in args:
-            s = Storage(*arg)
+        for s in stores:
             self.__stores[s._id] = s
 
     def ids(self):
