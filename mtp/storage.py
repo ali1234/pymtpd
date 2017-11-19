@@ -1,14 +1,18 @@
 import itertools
 import pathlib
 import logging
+import os
 logger = logging.getLogger(__name__)
 
 from construct import *
+from inotify_simple import INotify, flags
+IN_MASK = flags.ATTRIB | flags.CREATE | flags.DELETE | flags.MODIFY | flags.MOVED_TO | flags.MOVED_FROM
 
 import mtp.constants
 from mtp.adapters import MTPString
 from mtp.exceptions import MTPError
 from mtp.object import Object
+
 
 
 
@@ -38,14 +42,31 @@ class Storage(object):
         self.__name = name
         self.__writable = writable
         self.__objects = dict()
-        logger.debug('Create Storage: %x, %s, %s' % (self._id, self.__name, str(self._path)))
+
+    def connect(self, intep, loop):
+        logger.debug('Connect Storage: %x, %s, %s' % (self._id, self.__name, str(self._path)))
+        self.__intep = intep
+        self.__loop = loop
+        self.__inotify = INotify()
+        self.__watchfd = self.__inotify.add_watch(str(self._path), IN_MASK)
+        self.__loop.add_reader(self.__inotify.fd, self.__inotify_event)
         self.dirscan(self._path)  # objects in root dir have no parent
+
+    def __inotify_event(self):
+        for event in self.__inotify.read():
+            print(event)
+
+    def disconnect(self):
+        logger.debug('Disconnect Storage: %x, %s, %s' % (self._id, self.__name, str(self._path)))
+        self.__loop.remove_reader(self.__fanfd)
+        os.close(self.__fanfd)
 
     def dirscan(self, path, parent=None):
         for fz in path.iterdir():
             obj = Object(self, fz, parent)
             self.__objects[obj._handle] = obj
             if fz.is_dir():
+                obj.__watchfd = self.__inotify.add_watch(str(fz), IN_MASK)
                 self.dirscan(fz, obj)
 
     def build(self):
@@ -74,10 +95,12 @@ class Storage(object):
 
 class StorageManager(object):
 
-    def __init__(self, *stores):
+    def __init__(self, intep, loop, *stores):
+        self.intep = intep
+        self.loop = loop
         self.__stores = dict()
         for s in stores:
-            self.__stores[s._id] = s
+            self.__add(s)
 
     def ids(self):
         return self.__stores.keys()
@@ -93,12 +116,22 @@ class StorageManager(object):
                 continue
         raise MTPError('INVALID_OBJECT_HANDLE')
 
+    def __add(self, store):
+        self.__stores[store._id] = store
+        store.connect(self.intep, self.loop)
+
+    def add(self, store):
+        self.__add(store)
+
     def __getitem__(self, key):
         try:
             return self.__stores[key]
         except KeyError:
             raise MTPError('STORE_NOT_AVAILABLE')
 
+    def __delitem__(self, key):
+        self.__stores[key].disconnect()
+        del self.__stores[key]
 
 
 

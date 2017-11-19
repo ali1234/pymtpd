@@ -12,7 +12,7 @@ setup(
     packages=['mtp'],
     scripts=['pymtpd'],
     install_requires=[
-        'functionfs', 'libaio', 'construct'
+        'functionfs', 'libaio', 'construct', 'inotify-simple'
     ],
     classifiers=[
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',

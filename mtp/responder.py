@@ -81,7 +81,7 @@ class MTPResponder(object):
             ('DEVICE_FRIENDLY_NAME', 'Whizzle'),
             ('SYNCHRONIZATION_PARTNER', '', True),
         )
-        self.storage = StorageManager(
+        self.storage = StorageManager(self.intep, self.loop,
             Storage('/tmp/mtp', u'Files', True),
         )
 
