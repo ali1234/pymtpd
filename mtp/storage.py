@@ -58,8 +58,8 @@ class Storage(object):
 
     def disconnect(self):
         logger.debug('Disconnect Storage: %x, %s, %s' % (self._id, self.__name, str(self._path)))
-        self.__loop.remove_reader(self.__fanfd)
-        os.close(self.__fanfd)
+        self.__loop.remove_reader(self.__inotify.fd)
+        self.__inotify.close()
 
     def dirscan(self, path, parent=None):
         for fz in path.iterdir():
