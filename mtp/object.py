@@ -49,6 +49,7 @@ class Object(object):
         logger.debug(self._path)
 
     def build(self):
+        stat = self._path.stat()
         is_dir = self._path.is_dir()
         return ObjectInfo.build(dict(
             storage_id=self._storage._id,
@@ -56,7 +57,9 @@ class Object(object):
             parent_object=0 if self._parent is None else self._parent._handle,
             filename=self._path.name,
             format='ASSOCIATION' if is_dir else 'UNDEFINED',
-            association_type='GENERIC_FOLDER' if is_dir else 'UNDEFINED'
+            association_type='GENERIC_FOLDER' if is_dir else 'UNDEFINED',
+            ctime = datetime.datetime.fromtimestamp(stat.st_ctime),
+            mtime = datetime.datetime.fromtimestamp(stat.st_mtime),
         ))
 
     def open(self, *args):
