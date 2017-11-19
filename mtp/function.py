@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import select
+import asyncio
 
 import functionfs
 import functionfs.ch9
@@ -74,6 +74,8 @@ class MTPFunction(functionfs.Function):
         hs_list.append(INT_DESCRIPTOR)
         fs_list.append(INT_DESCRIPTOR)
 
+        self.loop = asyncio.get_event_loop()
+
         try:
             # If anything goes wrong from here on we MUST not
             # hold any file descriptors open, else there is a
@@ -89,6 +91,8 @@ class MTPFunction(functionfs.Function):
                 },
             )
 
+            self.loop.add_reader(self.ep0, self.processEvents)
+
             assert len(self._ep_list) == 4
 
             self.inep = self._ep_list[1]
@@ -99,6 +103,7 @@ class MTPFunction(functionfs.Function):
                 outep=self.outep,
                 inep=self.inep,
                 intep=self.intep,
+                loop=self.loop,
             )
 
         except:
@@ -113,10 +118,4 @@ class MTPFunction(functionfs.Function):
 
     def processEventsForever(self):
         self.outep.submit() # prime the first async read
-        while True:
-            (r, w, x) = select.select([self.ep0, self.outep], [], [])
-            if self.ep0 in r:
-                self.processEvents()
-            if self.outep in r:
-                self.responder.handleOneOperation()
-
+        self.loop.run_forever()

@@ -70,10 +70,13 @@ def session(f):
 
 class MTPResponder(object):
 
-    def __init__(self, outep, inep, intep):
+    def __init__(self, outep, inep, intep, loop):
         self.outep = outep
         self.inep = inep
         self.intep = intep
+        self.loop = loop
+        self.loop.add_reader(self.outep, self.handleOneOperation)
+
         self.session_id = None
         self.properties = DeviceProperties(
             ('DEVICE_FRIENDLY_NAME', 'Whizzle'),
