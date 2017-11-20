@@ -9,8 +9,31 @@ from libaio.libaio import io_setup, io_prep_pread, io_submit, io_getevents, io_d
 from libaio.libaio import io_context_t, iocb, io_event
 from libaio.libaio import IOCB_FLAG_RESFD
 
+class KAIOFile(object):
 
-class KAIOReader(object):
+
+    def __init__(self, file):
+        self.file = file
+        self.filefd = file if type(file) == int else file.fileno()
+        self.evfd = eventfd(0, 0)
+        self.closed = False
+        self.buf = ctypes.c_buffer(512)
+
+        self.ctx = io_context_t()
+
+    def fileno(self):
+        return self.evfd
+
+    def close(self):
+        # python-functionfs likes to call close() twice. This is not a problem
+        # for regular fds, but will cause EINVAL with io_destroy().
+        if not self.closed:
+            io_destroy(self.ctx)
+            os.close(self.evfd)
+            self.closed = True
+
+
+class KAIOReader(KAIOFile):
 
     """KAIOReader: Wrap a file in Linux Kernel AIO.
 
@@ -44,13 +67,7 @@ class KAIOReader(object):
     """
 
     def __init__(self, file):
-        self.file = file
-        self.filefd = file if type(file) == int else file.fileno()
-        self.evfd = eventfd(0, 0)
-        self.__closed = False
-        self.buf = ctypes.c_buffer(512)
-
-        self.ctx = io_context_t()
+        super().__init__(file)
 
         io_setup(1, ctypes.byref(self.ctx))
 
@@ -63,8 +80,7 @@ class KAIOReader(object):
         logger.debug('Created KAIOReader: filefd = %d, evfd = %d' % (self.filefd, self.evfd))
 
 
-    def fileno(self):
-        return self.evfd
+
 
     def submit(self):
         io_submit(self.ctx, 1, ctypes.byref(self.iocbptr))
@@ -81,13 +97,6 @@ class KAIOReader(object):
         self.submit() # prime a new read operation
         return tmp
 
-    def close(self):
-        # python-functionfs likes to call close() twice. This is not a problem
-        # for regular fds, but will cause EINVAL with io_destroy().
-        if not self.__closed:
-            io_destroy(self.ctx)
-            os.close(self.evfd)
-            self.__closed = True
 
 
 if __name__ == '__main__':
