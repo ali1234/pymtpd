@@ -92,8 +92,7 @@ class MTPResponder(object):
 
     def receivedata(self, code, tx_id):
         # TODO: handle transfers bigger than one packet
-        buf = bytearray(512)
-        self.outep.readinto(buf)
+        buf = self.outep.read()
         mtpdata = MTPData.parse(buf)
         #TODO: check code
         if mtpdata.tx_id != tx_id:
