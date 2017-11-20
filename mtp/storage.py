@@ -107,7 +107,7 @@ class FilesystemStorage(BaseStorage):
         self.__loop.add_reader(self.__inotify.fd, self.__inotify_event)
 
     def dirscan(self, path, parent=None):
-        wd = self.__inotify.add_watch(str(path), IN_MASK)
+        wd = self.__inotify.add_watch(path, IN_MASK)
         self.__bywd[wd] = parent
         for fz in path.iterdir():
             obj = Object(self, fz, parent)
