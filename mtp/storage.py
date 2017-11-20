@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 from construct import *
 from inotify_simple import INotify, flags
-IN_MASK = flags.ATTRIB | flags.CREATE | flags.DELETE | flags.DELETE_SELF | flags.MODIFY | flags.MOVED_TO | flags.MOVED_FROM | flags.MOVE_SELF
+IN_MASK = flags.ATTRIB | flags.CREATE | flags.DELETE | flags.MODIFY | flags.MOVED_TO | flags.MOVED_FROM | flags.IGNORED
 
 import mtp.constants
 from mtp.adapters import MTPString
@@ -88,16 +88,20 @@ class FilesystemStorage(BaseStorage):
 
     """Implements a storage backed by a filesystem."""
 
-    def __init__(self, name, path, writable=False):
+    def __init__(self, name, path, writable=False, intep=None, loop=None):
         super().__init__(name, writable)
         self._path = pathlib.Path(path)
         self.__bywd = dict()
         self.__bypath = dict()
-
-    def connect(self, intep, loop):
-        super().connect()
+        if intep == None:
+            intep = open('/dev/null', 'wb')
+        if loop == None:
+            loop = asyncio.get_event_loop()
         self.__intep = intep
         self.__loop = loop
+
+    def connect(self):
+        super().connect()
         self.__inotify = INotify()
         self.dirscan(self._path) # objects in root dir have no parent
         self.__loop.add_reader(self.__inotify.fd, self.__inotify_event)
@@ -124,9 +128,9 @@ class FilesystemStorage(BaseStorage):
             if event.mask & (flags.ATTRIB | flags.MODIFY):
                 logger.info('MODIFY: %s:%s' % (self._name, path))
                 handle = self.__bypath[path]._handle
-                self.__intep.write(MTPEvent.build(dict(code='OBJECT_INFO_CHANGED', p1=handle)))
+                #self.__intep.write(MTPEvent.build(dict(code='OBJECT_INFO_CHANGED', p1=handle)))
 
-            if event.mask & (flags.CREATE):
+            elif event.mask & (flags.CREATE):
                 logger.info('CREATE: %s:%s' % (self._name, path))
                 fullpath = self._path / path
                 obj = Object(self, fullpath, parent)
@@ -134,19 +138,23 @@ class FilesystemStorage(BaseStorage):
                 self.__bypath[path] = obj
                 if fullpath.is_dir():
                     self.dirscan(fullpath, obj)
-                self.__intep.write(MTPEvent.build(dict(code='OBJECT_ADDED', p1=obj._handle)))
+                #self.__intep.write(MTPEvent.build(dict(code='OBJECT_ADDED', p1=obj._handle)))
 
-            if event.mask & (flags.DELETE):
+            elif event.mask & (flags.DELETE):
                 logger.info('DELETE: %s:%s' % (self._name, path))
                 handle = self.__bypath[path]._handle
                 del self._objects[handle]
                 del self.__bypath[path]
-                self.__intep.write(MTPEvent.build(dict(code='OBJECT_REMOVED', p1=handle)))
+                #self.__intep.write(MTPEvent.build(dict(code='OBJECT_REMOVED', p1=handle)))
 
-            if event.mask & (flags.DELETE_SELF):
-                logger.info('DELETE_SELF: %s:%s' % (self._name, path))
-                self.__inotify.rm_watch(event.wd)
+            elif event.mask & (flags.IGNORED):
+                logger.info('IGNORED: %s:%s' % (self._name, path))
                 del self.__bywd[event.wd]
+
+            else:
+                logger.info('EVENT UNHANDLED: %s:%s %d' % (self._name, path, event.mask))
+
+            logger.info('Event handled successfully?')
 
     def disconnect(self):
         super().disconnect()
@@ -180,7 +188,7 @@ class StorageManager(object):
 
     def __add(self, store):
         self.__stores[store._id] = store
-        store.connect(self.intep, self.loop)
+        store.connect()
 
     def add(self, store):
         self.__add(store)
@@ -200,9 +208,9 @@ class StorageManager(object):
 
 
 if __name__ == '__main__':
-    sm = StorageManager(
-        ('/tmp/mtp', u'Files', True),
-    )
-
-    for k in sm.handles():
-        print(k, StorageInfo.parse(sm[k].build()))
+    logging.basicConfig(level=logging.DEBUG)
+    import asyncio
+    loop = asyncio.get_event_loop()
+    s = FilesystemStorage('Files', '/tmp/test', True, loop=loop)
+    s.connect()
+    loop.run_forever()

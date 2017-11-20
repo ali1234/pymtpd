@@ -82,7 +82,7 @@ class MTPResponder(object):
             ('SYNCHRONIZATION_PARTNER', '', True),
         )
         self.storage = StorageManager(self.intep, self.loop,
-            FilesystemStorage('Files', '/tmp/mtp', True),
+            FilesystemStorage('Files', '/tmp/mtp', True, self.intep, self.loop),
         )
 
     def senddata(self, code, tx_id, data):
