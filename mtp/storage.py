@@ -159,6 +159,8 @@ class FilesystemStorage(BaseStorage):
                 logger.info('IGNORED: %s:%s' % (self._name, path))
                 # This event is received when a watched object is deleted.
                 # The watch is automatically removed on kernel side.
+                if self.__bywd[event.wd] is None:
+                    logger.critical('Store root directory appears to have been deleted.')
                 del self.__bywd[event.wd]
 
             else:
