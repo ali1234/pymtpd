@@ -42,6 +42,8 @@ class Storage(object):
         self.__name = name
         self.__writable = writable
         self.__objects = dict()
+        self.__bywd = dict()
+        self.__bypath = dict()
 
     def connect(self, intep, loop):
         logger.debug('Connect Storage: %x, %s, %s' % (self._id, self.__name, str(self._path)))
@@ -54,7 +56,25 @@ class Storage(object):
 
     def __inotify_event(self):
         for event in self.__inotify.read():
-            print(event)
+            if event.wd == self.__watchfd:
+                path = event.name
+                # event happened in the storage root
+            else:
+                path = str(pathlib.Path(self.__bywd[event.wd]._path) / event.name)
+
+            if event.mask & flags.ATTRIB:
+                logger.info('ATTRIB: %s:%s' % (self.__name, path))
+            if event.mask & flags.CREATE:
+                logger.info('CREATE: %s:%s' % (self.__name, path))
+            if event.mask & flags.DELETE:
+                logger.info('DELETE: %s:%s' % (self.__name, path))
+            if event.mask & flags.MODIFY:
+                logger.info('MODIFY: %s:%s' % (self.__name, path))
+            if event.mask & flags.MOVED_FROM:
+                logger.info('MOVED_FROM: %s:%s' % (self.__name, path))
+            if event.mask & flags.MOVED_TO:
+                logger.info('MOVED_TO: %s:%s' % (self.__name, path))
+
 
     def disconnect(self):
         logger.debug('Disconnect Storage: %x, %s, %s' % (self._id, self.__name, str(self._path)))
@@ -66,7 +86,9 @@ class Storage(object):
             obj = Object(self, fz, parent)
             self.__objects[obj._handle] = obj
             if fz.is_dir():
-                obj.__watchfd = self.__inotify.add_watch(str(fz), IN_MASK)
+                fd = self.__inotify.add_watch(str(fz), IN_MASK)
+                self.__bywd[fd] = obj
+                self.__bypath[obj._path] = obj
                 self.dirscan(fz, obj)
 
     def build(self):
