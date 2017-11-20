@@ -6,12 +6,13 @@ logger = logging.getLogger(__name__)
 
 from construct import *
 from inotify_simple import INotify, flags
-IN_MASK = flags.ATTRIB | flags.CREATE | flags.DELETE | flags.MODIFY | flags.MOVED_TO | flags.MOVED_FROM
+IN_MASK = flags.ATTRIB | flags.CREATE | flags.DELETE | flags.DELETE_SELF | flags.MODIFY | flags.MOVED_TO | flags.MOVED_FROM | flags.MOVE_SELF
 
 import mtp.constants
 from mtp.adapters import MTPString
 from mtp.exceptions import MTPError
 from mtp.object import Object
+from mtp.packets import MTPEvent
 
 
 
@@ -44,11 +45,11 @@ class BaseStorage(object):
         self._objects = dict()
 
 
-    def connect(self, intep, loop):
-        logger.debug('Connect %s: %x, %s, %s' % (self.__name__, self._id, self.__name, str(self._path)))
+    def connect(self):
+        logger.debug('Connect %s: %x, %s' % ('', self._id, self._name))
 
     def disconnect(self):
-        logger.debug('Disconnect %s: %x, %s, %s' % (self.__name__, self._id, self.__name, str(self._path)))
+        logger.debug('Disconnect %s: %x, %s' % ('', self._id, self._name))
 
     def build(self):
         return StorageInfo.build(dict(max_capacity=1000000000, free_space=100000000, volume_identifier=self._name,
@@ -79,7 +80,9 @@ class BaseStorage(object):
         except KeyError:
             raise MTPError('INVALID_OBJECT_HANDLE')
 
-
+class FilesystemStorageInconsistency(Exception):
+    """Exception raised if handle<->object mapping is out of sync."""
+    pass
 
 class FilesystemStorage(BaseStorage):
 
@@ -92,45 +95,61 @@ class FilesystemStorage(BaseStorage):
         self.__bypath = dict()
 
     def connect(self, intep, loop):
+        super().connect()
         self.__intep = intep
         self.__loop = loop
         self.__inotify = INotify()
-        self.__watchfd = self.__inotify.add_watch(str(self._path), IN_MASK)
-        self.dirscan(self._path)  # objects in root dir have no parent
+        self.dirscan(self._path) # objects in root dir have no parent
         self.__loop.add_reader(self.__inotify.fd, self.__inotify_event)
 
     def dirscan(self, path, parent=None):
+        wd = self.__inotify.add_watch(str(path), IN_MASK)
+        self.__bywd[wd] = parent
         for fz in path.iterdir():
             obj = Object(self, fz, parent)
             self._objects[obj._handle] = obj
+            self.__bypath[obj._path] = obj
             if fz.is_dir():
-                fd = self.__inotify.add_watch(str(fz), IN_MASK)
-                self.__bywd[fd] = obj
-                self.__bypath[obj._path] = obj
                 self.dirscan(fz, obj)
 
     def __inotify_event(self):
+        # exceptions here should bubble out to the function and trigger a restart.
         for event in self.__inotify.read():
-            if event.wd == self.__watchfd:
+            parent = self.__bywd[event.wd]
+            if parent is None:
                 path = event.name
-                # event happened in the storage root
             else:
-                path = str(pathlib.Path(self.__bywd[event.wd]._path) / event.name)
+                path = str(pathlib.Path(parent._path) / event.name)
 
-            if event.mask & flags.ATTRIB:
-                logger.info('ATTRIB: %s:%s' % (self._name, path))
-            if event.mask & flags.CREATE:
-                logger.info('CREATE: %s:%s' % (self._name, path))
-            if event.mask & flags.DELETE:
-                logger.info('DELETE: %s:%s' % (self._name, path))
-            if event.mask & flags.MODIFY:
+            if event.mask & (flags.ATTRIB | flags.MODIFY):
                 logger.info('MODIFY: %s:%s' % (self._name, path))
-            if event.mask & flags.MOVED_FROM:
-                logger.info('MOVED_FROM: %s:%s' % (self._name, path))
-            if event.mask & flags.MOVED_TO:
-                logger.info('MOVED_TO: %s:%s' % (self._name, path))
+                handle = self.__bypath[path]._handle
+                self.__intep.write(MTPEvent.build(dict(code='OBJECT_INFO_CHANGED', p1=handle)))
+
+            if event.mask & (flags.CREATE):
+                logger.info('CREATE: %s:%s' % (self._name, path))
+                fullpath = self._path / path
+                obj = Object(self, fullpath, parent)
+                self._objects[obj._handle] = obj
+                self.__bypath[path] = obj
+                if fullpath.is_dir():
+                    self.dirscan(fullpath, obj)
+                self.__intep.write(MTPEvent.build(dict(code='OBJECT_ADDED', p1=obj._handle)))
+
+            if event.mask & (flags.DELETE):
+                logger.info('DELETE: %s:%s' % (self._name, path))
+                handle = self.__bypath[path]._handle
+                del self._objects[handle]
+                del self.__bypath[path]
+                self.__intep.write(MTPEvent.build(dict(code='OBJECT_REMOVED', p1=handle)))
+
+            if event.mask & (flags.DELETE_SELF):
+                logger.info('DELETE_SELF: %s:%s' % (self._name, path))
+                self.__inotify.rm_watch(event.wd)
+                del self.__bywd[event.wd]
 
     def disconnect(self):
+        super().disconnect()
         self.__loop.remove_reader(self.__inotify.fd)
         self.__inotify.close()
 
@@ -165,6 +184,7 @@ class StorageManager(object):
 
     def add(self, store):
         self.__add(store)
+        self.intep.write(MTPEvent.build(dict(code='STORE_ADDED', p1=store._id)))
 
     def __getitem__(self, key):
         try:
@@ -175,6 +195,7 @@ class StorageManager(object):
     def __delitem__(self, key):
         self.__stores[key].disconnect()
         del self.__stores[key]
+        self.intep.write(MTPEvent.build(dict(code='STORE_ADDED', p1=key)))
 
 
 
