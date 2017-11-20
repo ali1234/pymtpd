@@ -147,12 +147,22 @@ class FilesystemStorage(BaseStorage):
                 del self.__bypath[path]
                 #self.__intep.write(MTPEvent.build(dict(code='OBJECT_REMOVED', p1=handle)))
 
+            elif event.mask & (flags.MOVED_FROM):
+                # TODO: Implement this
+                logger.info('MOVED_FROM: %s:%s' % (self._name, path))
+
+            elif event.mask & (flags.MOVED_TO):
+                # TODO: Implement this
+                logger.info('MOVED_TO: %s:%s' % (self._name, path))
+
             elif event.mask & (flags.IGNORED):
                 logger.info('IGNORED: %s:%s' % (self._name, path))
+                # This event is received when a watched object is deleted.
+                # The watch is automatically removed on kernel side.
                 del self.__bywd[event.wd]
 
             else:
-                logger.info('EVENT UNHANDLED: %s:%s %d' % (self._name, path, event.mask))
+                logger.info('BUG: EVENT UNHANDLED: %s:%s %d' % (self._name, path, event.mask))
 
             logger.info('Event handled successfully?')
 
