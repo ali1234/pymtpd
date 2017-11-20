@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 from mtp.exceptions import MTPError
 from mtp.device import DeviceInfo, DeviceProperties, DevicePropertyCode
-from mtp.packets import MTPOperation, MTPResponse, MTPData, DataType, OperationCode
+from mtp.packets import MTPOperation, MTPResponse, MTPData, DataType, OperationCode, EventCode
 from mtp.storage import StorageManager, FilesystemStorage
 
 
@@ -113,6 +113,18 @@ class MTPResponder(object):
         data = DeviceInfo.build(dict(
                  device_properties_supported=self.properties.supported(),
                  operations_supported=sorted(operations.keys(), key=lambda o: OperationCode.encoding[o]),
+                 events_supported=sorted([
+                     'OBJECT_ADDED',
+                     'OBJECT_REMOVED',
+                     'OBJECT_INFO_CHANGED',
+                     'STORE_ADDED',
+                     'STORE_REMOVED',
+                     'STORAGE_INFO_CHANGED',
+                     'STORE_FULL',
+                     'DEVICE_INFO_CHANGED',
+                     'DEVICE_RESET',
+                     'UNREPORTED_STATUS',
+                 ], key=lambda e: EventCode.encoding[e])
                ))
         return (data, ())
 
