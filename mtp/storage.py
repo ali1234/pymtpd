@@ -88,16 +88,14 @@ class FilesystemStorage(BaseStorage):
 
     """Implements a storage backed by a filesystem."""
 
-    def __init__(self, name, path, writable=False, intep=None, loop=None):
+    def __init__(self, name, path, writable=False, eventcb=lambda **kwargs: None, loop=None):
         super().__init__(name, writable)
         self._path = pathlib.Path(path)
         self.__bywd = dict()
         self.__bypath = dict()
-        if intep == None:
-            intep = open('/dev/null', 'wb')
         if loop == None:
             loop = asyncio.get_event_loop()
-        self.__intep = intep
+        self.__eventcb = eventcb
         self.__loop = loop
 
     def connect(self):
@@ -128,7 +126,7 @@ class FilesystemStorage(BaseStorage):
             if event.mask & (flags.ATTRIB | flags.MODIFY):
                 logger.info('MODIFY: %s:%s' % (self._name, path))
                 handle = self.__bypath[path]._handle
-                self.__intep.write(MTPEvent.build(dict(code='OBJECT_INFO_CHANGED', p1=handle)))
+                self.__eventcb(code='OBJECT_INFO_CHANGED', p1=handle)
 
             elif event.mask & (flags.CREATE):
                 logger.info('CREATE: %s:%s' % (self._name, path))
@@ -138,14 +136,14 @@ class FilesystemStorage(BaseStorage):
                 self.__bypath[path] = obj
                 if fullpath.is_dir():
                     self.dirscan(fullpath, obj)
-                self.__intep.write(MTPEvent.build(dict(code='OBJECT_ADDED', p1=obj._handle)))
+                self.__eventcb(code='OBJECT_ADDED', p1=obj._handle)
 
             elif event.mask & (flags.DELETE):
                 logger.info('DELETE: %s:%s' % (self._name, path))
                 handle = self.__bypath[path]._handle
                 del self._objects[handle]
                 del self.__bypath[path]
-                self.__intep.write(MTPEvent.build(dict(code='OBJECT_REMOVED', p1=handle)))
+                self.__eventcb(code='OBJECT_REMOVED', p1=handle)
 
             elif event.mask & (flags.MOVED_FROM):
                 # TODO: Implement this
@@ -177,8 +175,8 @@ class FilesystemStorage(BaseStorage):
 
 class StorageManager(object):
 
-    def __init__(self, intep, loop, *stores):
-        self.intep = intep
+    def __init__(self, eventcb, loop, *stores):
+        self.eventcb = eventcb
         self.loop = loop
         self.__stores = dict()
         for s in stores:
@@ -204,7 +202,7 @@ class StorageManager(object):
 
     def add(self, store):
         self.__add(store)
-        self.intep.write(MTPEvent.build(dict(code='STORE_ADDED', p1=store._id)))
+        self.eventcb(MTPEvent.build(dict(code='STORE_ADDED', p1=store._id)))
 
     def __getitem__(self, key):
         try:
@@ -215,7 +213,7 @@ class StorageManager(object):
     def __delitem__(self, key):
         self.__stores[key].disconnect()
         del self.__stores[key]
-        self.intep.write(MTPEvent.build(dict(code='STORE_ADDED', p1=key)))
+        self.eventcb(MTPEvent.build(dict(code='STORE_ADDED', p1=key)))
 
 
 
@@ -223,6 +221,6 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     import asyncio
     loop = asyncio.get_event_loop()
-    s = FilesystemStorage('Files', '/tmp/test', True, loop=loop)
+    s = FilesystemStorage('Files', '/tmp/test', writable=True, loop=loop)
     s.connect()
     loop.run_forever()

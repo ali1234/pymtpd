@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 from mtp.exceptions import MTPError
 from mtp.device import DeviceInfo, DeviceProperties, DevicePropertyCode
-from mtp.packets import MTPOperation, MTPResponse, MTPData, DataType, OperationCode, EventCode
+from mtp.packets import MTPOperation, MTPResponse, MTPData, MTPEvent, DataType, OperationCode, EventCode
 from mtp.storage import StorageManager, FilesystemStorage
 
 
@@ -82,9 +82,15 @@ class MTPResponder(object):
             ('DEVICE_FRIENDLY_NAME', 'Whizzle'),
             ('SYNCHRONIZATION_PARTNER', '', True),
         )
-        self.storage = StorageManager(self.intep, self.loop,
-            FilesystemStorage('Files', '/tmp/mtp', True, self.intep, self.loop),
+        self.storage = StorageManager(self.sendevent, self.loop,
+            FilesystemStorage('Files', '/tmp/mtp', True, self.sendevent, self.loop),
         )
+
+    def sendevent(self, **kwargs):
+        if self.session_id is not None:
+            logger.debug('Send event %s' % (str(kwargs)))
+            self.intep.write(MTPEvent.build(kwargs))
+
 
     def senddata(self, code, tx_id, data):
         # TODO: handle transfers bigger than one packet
