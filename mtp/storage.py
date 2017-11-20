@@ -31,28 +31,83 @@ StorageInfo = Struct(
     'volume_identifier' / Default(MTPString, u''),
 )
 
+class BaseStorage(object):
 
-class Storage(object):
+    """Implements basic storage functions: ID, handles, object container."""
 
     counter = itertools.count(0x10001)
 
-    def __init__(self, path, name, writable=False):
+    def __init__(self, name, writable=False):
         self._id = next(self.counter)
+        self._name = name
+        self._writable = writable
+        self._objects = dict()
+
+
+    def connect(self, intep, loop):
+        logger.debug('Connect %s: %x, %s, %s' % (self.__name__, self._id, self.__name, str(self._path)))
+
+    def disconnect(self):
+        logger.debug('Disconnect %s: %x, %s, %s' % (self.__name__, self._id, self.__name, str(self._path)))
+
+    def build(self):
+        return StorageInfo.build(dict(max_capacity=1000000000, free_space=100000000, volume_identifier=self._name,
+                                      storage_description=self._name))
+
+    def handles(self, parent=0):
+        if parent == 0:
+            return self._objects.keys()
+        elif parent == 0xffffffff:  # yes, the spec is really dumb
+            return (k for k, v in self._objects.items() if v._parent == None)
+        else:
+            try:
+                p = self._objects[parent]
+            except KeyError:
+                raise MTPError("INVALID_PARENT_OBJECT")
+            else:
+                return (k for k, v in self._objects.items() if v._parent == p)
+
+    def __getitem__(self, item):
+        try:
+            return self._objects[item]
+        except KeyError:
+            raise MTPError('INVALID_OBJECT_HANDLE')
+
+    def __delitem__(self, item):
+        try:
+            del self._objects[item]
+        except KeyError:
+            raise MTPError('INVALID_OBJECT_HANDLE')
+
+
+
+class FilesystemStorage(BaseStorage):
+
+    """Implements a storage backed by a filesystem."""
+
+    def __init__(self, name, path, writable=False):
+        super().__init__(name, writable)
         self._path = pathlib.Path(path)
-        self.__name = name
-        self.__writable = writable
-        self.__objects = dict()
         self.__bywd = dict()
         self.__bypath = dict()
 
     def connect(self, intep, loop):
-        logger.debug('Connect Storage: %x, %s, %s' % (self._id, self.__name, str(self._path)))
         self.__intep = intep
         self.__loop = loop
         self.__inotify = INotify()
         self.__watchfd = self.__inotify.add_watch(str(self._path), IN_MASK)
-        self.__loop.add_reader(self.__inotify.fd, self.__inotify_event)
         self.dirscan(self._path)  # objects in root dir have no parent
+        self.__loop.add_reader(self.__inotify.fd, self.__inotify_event)
+
+    def dirscan(self, path, parent=None):
+        for fz in path.iterdir():
+            obj = Object(self, fz, parent)
+            self._objects[obj._handle] = obj
+            if fz.is_dir():
+                fd = self.__inotify.add_watch(str(fz), IN_MASK)
+                self.__bywd[fd] = obj
+                self.__bypath[obj._path] = obj
+                self.dirscan(fz, obj)
 
     def __inotify_event(self):
         for event in self.__inotify.read():
@@ -63,56 +118,22 @@ class Storage(object):
                 path = str(pathlib.Path(self.__bywd[event.wd]._path) / event.name)
 
             if event.mask & flags.ATTRIB:
-                logger.info('ATTRIB: %s:%s' % (self.__name, path))
+                logger.info('ATTRIB: %s:%s' % (self._name, path))
             if event.mask & flags.CREATE:
-                logger.info('CREATE: %s:%s' % (self.__name, path))
+                logger.info('CREATE: %s:%s' % (self._name, path))
             if event.mask & flags.DELETE:
-                logger.info('DELETE: %s:%s' % (self.__name, path))
+                logger.info('DELETE: %s:%s' % (self._name, path))
             if event.mask & flags.MODIFY:
-                logger.info('MODIFY: %s:%s' % (self.__name, path))
+                logger.info('MODIFY: %s:%s' % (self._name, path))
             if event.mask & flags.MOVED_FROM:
-                logger.info('MOVED_FROM: %s:%s' % (self.__name, path))
+                logger.info('MOVED_FROM: %s:%s' % (self._name, path))
             if event.mask & flags.MOVED_TO:
-                logger.info('MOVED_TO: %s:%s' % (self.__name, path))
-
+                logger.info('MOVED_TO: %s:%s' % (self._name, path))
 
     def disconnect(self):
-        logger.debug('Disconnect Storage: %x, %s, %s' % (self._id, self.__name, str(self._path)))
         self.__loop.remove_reader(self.__inotify.fd)
         self.__inotify.close()
 
-    def dirscan(self, path, parent=None):
-        for fz in path.iterdir():
-            obj = Object(self, fz, parent)
-            self.__objects[obj._handle] = obj
-            if fz.is_dir():
-                fd = self.__inotify.add_watch(str(fz), IN_MASK)
-                self.__bywd[fd] = obj
-                self.__bypath[obj._path] = obj
-                self.dirscan(fz, obj)
-
-    def build(self):
-        return StorageInfo.build(dict(max_capacity=1000000000, free_space=100000000, volume_identifier=self.__name,
-                                      storage_description=self.__name))
-
-    def handles(self, parent=0):
-        if parent == 0:
-            return self.__objects.keys()
-        elif parent == 0xffffffff:  # yes, the spec is really dumb
-            return (k for k, v in self.__objects.items() if v._parent == None)
-        else:
-            try:
-                p = self.__objects[parent]
-            except KeyError:
-                raise MTPError("INVALID_PARENT_OBJECT")
-            else:
-                return (k for k, v in self.__objects.items() if v._parent == p)
-
-    def __getitem__(self, item):
-        try:
-            return self.__objects[item]
-        except KeyError:
-            raise MTPError('INVALID_OBJECT_HANDLE')
 
 
 class StorageManager(object):

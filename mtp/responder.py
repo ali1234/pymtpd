@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 from mtp.exceptions import MTPError
 from mtp.device import DeviceInfo, DeviceProperties, DevicePropertyCode
 from mtp.packets import MTPOperation, MTPResponse, MTPData, DataType, OperationCode
-from mtp.storage import StorageManager, Storage
+from mtp.storage import StorageManager, FilesystemStorage
 
 
 operations = {}
@@ -82,7 +82,7 @@ class MTPResponder(object):
             ('SYNCHRONIZATION_PARTNER', '', True),
         )
         self.storage = StorageManager(self.intep, self.loop,
-            Storage('/tmp/mtp', u'Files', True),
+            FilesystemStorage('Files', '/tmp/mtp', True),
         )
 
     def senddata(self, code, tx_id, data):
