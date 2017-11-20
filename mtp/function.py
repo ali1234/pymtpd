@@ -5,7 +5,7 @@ import asyncio
 import functionfs
 import functionfs.ch9
 
-from mtp.kaio import KAIOReader
+from mtp.kaio import KAIOReader, KAIOWriter
 from .responder import MTPResponder
 
 FS_BULK_MAX_PACKET_SIZE = 64
@@ -97,7 +97,7 @@ class MTPFunction(functionfs.Function):
 
             self.inep = self._ep_list[1]
             self.outep = KAIOReader(self._ep_list[2])
-            self.intep = self._ep_list[3]
+            self.intep = KAIOWriter(self._ep_list[3])
 
             self.responder = MTPResponder(
                 outep=self.outep,
@@ -114,6 +114,7 @@ class MTPFunction(functionfs.Function):
 
     def close(self):
         self.outep.close()
+        self.intep.close()
         super().close()
 
     def processEventsForever(self):

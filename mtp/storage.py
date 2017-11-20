@@ -128,7 +128,7 @@ class FilesystemStorage(BaseStorage):
             if event.mask & (flags.ATTRIB | flags.MODIFY):
                 logger.info('MODIFY: %s:%s' % (self._name, path))
                 handle = self.__bypath[path]._handle
-                #self.__intep.write(MTPEvent.build(dict(code='OBJECT_INFO_CHANGED', p1=handle)))
+                self.__intep.write(MTPEvent.build(dict(code='OBJECT_INFO_CHANGED', p1=handle)))
 
             elif event.mask & (flags.CREATE):
                 logger.info('CREATE: %s:%s' % (self._name, path))
@@ -138,14 +138,14 @@ class FilesystemStorage(BaseStorage):
                 self.__bypath[path] = obj
                 if fullpath.is_dir():
                     self.dirscan(fullpath, obj)
-                #self.__intep.write(MTPEvent.build(dict(code='OBJECT_ADDED', p1=obj._handle)))
+                self.__intep.write(MTPEvent.build(dict(code='OBJECT_ADDED', p1=obj._handle)))
 
             elif event.mask & (flags.DELETE):
                 logger.info('DELETE: %s:%s' % (self._name, path))
                 handle = self.__bypath[path]._handle
                 del self._objects[handle]
                 del self.__bypath[path]
-                #self.__intep.write(MTPEvent.build(dict(code='OBJECT_REMOVED', p1=handle)))
+                self.__intep.write(MTPEvent.build(dict(code='OBJECT_REMOVED', p1=handle)))
 
             elif event.mask & (flags.MOVED_FROM):
                 # TODO: Implement this

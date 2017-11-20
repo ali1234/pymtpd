@@ -1,25 +1,25 @@
 import os
 import ctypes
+import struct
 
 import logging
 logger = logging.getLogger(__name__)
 
 from libaio import eventfd
-from libaio.libaio import io_setup, io_prep_pread, io_submit, io_getevents, io_destroy
+from libaio.libaio import io_setup, io_prep_pread, io_prep_pwrite, io_submit, io_getevents, io_destroy
 from libaio.libaio import io_context_t, iocb, io_event
 from libaio.libaio import IOCB_FLAG_RESFD
 
 class KAIOFile(object):
 
 
-    def __init__(self, file):
+    def __init__(self, file, nr_events=1):
         self.file = file
         self.filefd = file if type(file) == int else file.fileno()
         self.evfd = eventfd(0, 0)
         self.closed = False
-        self.buf = ctypes.c_buffer(512)
-
         self.ctx = io_context_t()
+        io_setup(nr_events, ctypes.byref(self.ctx))
 
     def fileno(self):
         return self.evfd
@@ -67,20 +67,14 @@ class KAIOReader(KAIOFile):
     """
 
     def __init__(self, file):
-        super().__init__(file)
-
-        io_setup(1, ctypes.byref(self.ctx))
-
+        super().__init__(file, 1)
         self.iocb = iocb()
+        self.buf = ctypes.c_buffer(512)
         io_prep_pread(self.iocb, self.filefd, ctypes.cast(self.buf, ctypes.c_void_p), 512, 0)
         self.iocb.u.c.flags |= IOCB_FLAG_RESFD
         self.iocb.u.c.resfd = self.evfd
         self.iocbptr = ctypes.pointer(self.iocb)
-
         logger.debug('Created KAIOReader: filefd = %d, evfd = %d' % (self.filefd, self.evfd))
-
-
-
 
     def submit(self):
         io_submit(self.ctx, 1, ctypes.byref(self.iocbptr))
@@ -90,12 +84,38 @@ class KAIOReader(KAIOFile):
         e = io_event()
 
         ret = io_getevents(self.ctx, 1, 1, ctypes.byref(e), None)
-        if ret == 1 :
-            tmp = bytes(self.buf[:e.res])
-        else:
+        if ret != 1 :
             raise Exception('This should never happen')
+        tmp = bytearray(e.res)
+        tmp[:] = bytes(self.buf[:e.res])
         self.submit() # prime a new read operation
         return tmp
+
+
+class KAIOWriter(KAIOFile):
+    """Queues writes inside the kernel."""
+
+    def __init__(self, file):
+        super().__init__(file, 4096)
+        logger.debug('Created KAIOWriter: filefd = %d, evfd = %d' % (self.filefd, self.evfd))
+
+    def write(self, buf):
+        iocb_ = iocb()
+        io_prep_pwrite(iocb_, self.filefd, ctypes.cast(buf, ctypes.c_void_p), 28, 0)
+        iocb_.u.c.flags |= IOCB_FLAG_RESFD
+        iocb_.u.c.resfd = self.evfd
+        iocbptr = ctypes.pointer(iocb_)
+        io_submit(self.ctx, 1, ctypes.byref(iocbptr))
+        logger.warning('event written')
+
+    def pump(self):
+        res = os.read(self.evfd, 8)
+        (n_e,) = struct.unpack('Q', res)
+        e = (io_event*n_e)()
+        ret = io_getevents(self.ctx, n_e, n_e, e, None)
+        logger.warning('pumped %d of %d events' % (ret, n_e))
+
+
 
 
 

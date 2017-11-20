@@ -75,6 +75,7 @@ class MTPResponder(object):
         self.intep = intep
         self.loop = loop
         self.loop.add_reader(self.outep, self.handleOneOperation)
+        self.loop.add_reader(self.intep, self.intep.pump)
 
         self.session_id = None
         self.properties = DeviceProperties(
@@ -133,12 +134,14 @@ class MTPResponder(object):
             raise MTPError('SESSION_ALREADY_OPEN', (self.session_id,))
         else:
             self.session_id = p.p1
+        logger.info('Session opened.')
         return (self.session_id,)
 
     @operation
     @session
     def CLOSE_SESSION(self, p):
         self.session_id = None
+        logger.info('Session closed.')
         return ()
 
     @operation
