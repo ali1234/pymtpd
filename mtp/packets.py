@@ -45,10 +45,9 @@ MTPData = Struct(
 )
 
 MTPEvent = Struct(
-    'length' / Const(Int32ul, 28),
+    'length' / Const(Int32ul, 24),
     'type' / Const(ContainerType, 'EVENT'),
     'code' / EventCode,
-    'session_id' / Default(Int32ul, 0xffffffff),
     'tx_id' / Default(Int32ul, 0),
     'p1' / Default(Int32ul, 0),
     'p2' / Default(Int32ul, 0),
