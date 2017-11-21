@@ -96,17 +96,18 @@ class KAIOWriter(KAIOFile):
     """Queues writes inside the kernel."""
 
     def __init__(self, file):
-        super().__init__(file, 4096)
+        super().__init__(file, 128)
         logger.debug('Created KAIOWriter: filefd = %d, evfd = %d' % (self.filefd, self.evfd))
 
     def write(self, buf):
         iocb_ = iocb()
-        io_prep_pwrite(iocb_, self.filefd, ctypes.cast(buf, ctypes.c_void_p), 28, 0)
+        io_prep_pwrite(iocb_, self.filefd, ctypes.cast(buf, ctypes.c_void_p), len(buf), 0)
         iocb_.u.c.flags |= IOCB_FLAG_RESFD
         iocb_.u.c.resfd = self.evfd
         iocbptr = ctypes.pointer(iocb_)
-        io_submit(self.ctx, 1, ctypes.byref(iocbptr))
+        result = io_submit(self.ctx, 1, ctypes.byref(iocbptr))
         logger.warning('event written')
+        # TODO: What happens when buf, iocb_, iocbptr go out of scope?
 
     def pump(self):
         res = os.read(self.evfd, 8)
@@ -114,7 +115,9 @@ class KAIOWriter(KAIOFile):
         e = (io_event*n_e)()
         ret = io_getevents(self.ctx, n_e, n_e, e, None)
         logger.warning('pumped %d of %d events' % (ret, n_e))
-
+        for i in range(ret):
+            logger.warning(' event %d - %d' % (i, e[i].res))
+            # TODO: Free buf, iocb_, iocbptr here?
 
 
 
