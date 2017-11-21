@@ -88,6 +88,7 @@ class MTPResponder(object):
 
     def sendevent(self, **kwargs):
         if self.session_id is not None:
+            kwargs['session_id'] = self.session_id
             logger.debug('Send event %s' % (str(kwargs)))
             self.intep.write(MTPEvent.build(kwargs))
 
