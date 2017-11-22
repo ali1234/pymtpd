@@ -125,11 +125,15 @@ class FilesystemStorage(BaseStorage):
 
             if event.mask & (flags.ATTRIB | flags.MODIFY):
                 logger.info('MODIFY: %s:%s' % (self._name, path))
+                # This one is simple. Just notify that the object changed. Note that gvfs-mtp ignores this anyway.
                 handle = self.__bypath[path]._handle
                 self.__eventcb(code='OBJECT_INFO_CHANGED', p1=handle)
 
             elif event.mask & (flags.CREATE):
                 logger.info('CREATE: %s:%s' % (self._name, path))
+                # This one is simple for files, but if a directory was created then objects may have been
+                # created inside it before we received this event, and therefore before we added an inotify
+                # watch to the new directory. TODO: handle that case correctly.
                 fullpath = self._path / path
                 obj = Object(self, fullpath, parent)
                 self._objects[obj._handle] = obj
@@ -140,6 +144,7 @@ class FilesystemStorage(BaseStorage):
 
             elif event.mask & (flags.DELETE):
                 logger.info('DELETE: %s:%s' % (self._name, path))
+                # If a directory is deleted it must have already been empty, so nothing fancy is needed here.
                 handle = self.__bypath[path]._handle
                 del self._objects[handle]
                 del self.__bypath[path]
