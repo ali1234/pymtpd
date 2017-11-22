@@ -185,7 +185,7 @@ class StorageManager(object):
         self.loop = loop
         self.__stores = dict()
         for s in stores:
-            self.__add(s)
+            self.add(s)
 
     def ids(self):
         return self.__stores.keys()
@@ -201,13 +201,10 @@ class StorageManager(object):
                 continue
         raise MTPError('INVALID_OBJECT_HANDLE')
 
-    def __add(self, store):
+    def add(self, store):
         self.__stores[store._id] = store
         store.connect()
-
-    def add(self, store):
-        self.__add(store)
-        self.eventcb(MTPEvent.build(dict(code='STORE_ADDED', p1=store._id)))
+        self.eventcb(code='STORE_ADDED', p1=store._id)
 
     def __getitem__(self, key):
         try:
@@ -218,7 +215,7 @@ class StorageManager(object):
     def __delitem__(self, key):
         self.__stores[key].disconnect()
         del self.__stores[key]
-        self.eventcb(MTPEvent.build(dict(code='STORE_ADDED', p1=key)))
+        self.eventcb(code='STORE_ADDED', p1=key)
 
 
 
