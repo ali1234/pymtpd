@@ -20,6 +20,7 @@ class KAIOFile(object):
         self.closed = False
         self.ctx = io_context_t()
         io_setup(nr_events, ctypes.byref(self.ctx))
+        logger.debug('Created %s: filefd = %d, evfd = %d' % (type(self).__name__, self.filefd, self.evfd))
 
     def fileno(self):
         return self.evfd
@@ -74,7 +75,6 @@ class KAIOReader(KAIOFile):
         self.iocb.u.c.flags |= IOCB_FLAG_RESFD
         self.iocb.u.c.resfd = self.evfd
         self.iocbptr = ctypes.pointer(self.iocb)
-        logger.debug('Created KAIOReader: filefd = %d, evfd = %d' % (self.filefd, self.evfd))
 
     def submit(self):
         io_submit(self.ctx, 1, ctypes.byref(self.iocbptr))
@@ -97,7 +97,6 @@ class KAIOWriter(KAIOFile):
 
     def __init__(self, file):
         super().__init__(file, 128)
-        logger.debug('Created KAIOWriter: filefd = %d, evfd = %d' % (self.filefd, self.evfd))
 
     def write(self, buf):
         iocb_ = iocb()
