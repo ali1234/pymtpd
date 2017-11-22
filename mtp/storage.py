@@ -43,13 +43,10 @@ class BaseStorage(object):
         self._name = name
         self._writable = writable
         self._objects = dict()
-
-
-    def connect(self):
-        logger.debug('Connect %s: %x, %s' % ('', self._id, self._name))
+        logger.debug('Connect %s: %x, %s' % (type(self).__name__, self._id, self._name))
 
     def disconnect(self):
-        logger.debug('Disconnect %s: %x, %s' % ('', self._id, self._name))
+        logger.debug('Disconnect %s: %x, %s' % (type(self).__name__, self._id, self._name))
 
     def build(self):
         return StorageInfo.build(dict(max_capacity=1000000000, free_space=100000000, volume_identifier=self._name,
@@ -97,9 +94,6 @@ class FilesystemStorage(BaseStorage):
             loop = asyncio.get_event_loop()
         self.__eventcb = eventcb
         self.__loop = loop
-
-    def connect(self):
-        super().connect()
         self.__inotify = INotify()
         self.dirscan(self._path) # objects in root dir have no parent
         self.__loop.add_reader(self.__inotify.fd, self.__inotify_event)
@@ -173,8 +167,8 @@ class FilesystemStorage(BaseStorage):
 
     def disconnect(self):
         super().disconnect()
-        self.__loop.remove_reader(self.__inotify.fd)
         self.__inotify.close()
+        self.__loop.remove_reader(self.__inotify.fd)
 
 
 
@@ -203,7 +197,6 @@ class StorageManager(object):
 
     def add(self, store):
         self.__stores[store._id] = store
-        store.connect()
         self.eventcb(code='STORE_ADDED', p1=store._id)
 
     def __getitem__(self, key):
