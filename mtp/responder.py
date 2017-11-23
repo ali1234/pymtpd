@@ -89,7 +89,7 @@ class MTPResponder(object):
         self.hm = HandleManager()
         self.sm = StorageManager(self.hm)
 
-        FilesystemStorage('Files', '/tmp/mtp', self.sm, self.hm, self.wm),
+        FilesystemStorage('Files', '/tmp/mtp', self.sm, self.hm, self.wm)
 
         self.loop.add_reader(self.wm, self.wm.dispatch)
 
