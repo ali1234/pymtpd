@@ -6,6 +6,8 @@ logger = logging.getLogger(__name__)
 from mtp.exceptions import MTPError
 from mtp.device import DeviceInfo, DeviceProperties, DevicePropertyCode
 from mtp.packets import MTPOperation, MTPResponse, MTPData, MTPEvent, DataType, OperationCode, EventCode
+from mtp.watchmanager import WatchManager
+from mtp.handlemanager import HandleManager
 from mtp.storage import StorageManager, FilesystemStorage
 
 
@@ -82,9 +84,14 @@ class MTPResponder(object):
             ('DEVICE_FRIENDLY_NAME', 'Whizzle'),
             ('SYNCHRONIZATION_PARTNER', '', True),
         )
-        self.storage = StorageManager(self.sendevent, self.loop,
-            FilesystemStorage('Files', '/tmp/mtp', True, self.sendevent, self.loop),
-        )
+
+        self.wm = WatchManager()
+        self.hm = HandleManager()
+        self.sm = StorageManager(self.hm)
+
+        FilesystemStorage('Files', '/tmp/mtp', self.sm, self.hm, self.wm),
+
+        self.loop.add_reader(self.wm, self.wm.dispatch)
 
     def sendevent(self, **kwargs):
         if self.session_id is not None:
@@ -154,14 +161,14 @@ class MTPResponder(object):
     @sender
     @session
     def GET_STORAGE_IDS(self, p):
-        data = DataType.formats['AUINT32'].build(list(self.storage.ids()))
+        data = DataType.formats['AUINT32'].build(list(self.sm.ids()))
         return(data, ())
 
     @operation
     @sender
     @session
     def GET_STORAGE_INFO(self, p):
-        data = self.storage[p.p1].build()
+        data = self.sm[p.p1].build()
         return (data, ())
 
     @operation
@@ -169,10 +176,8 @@ class MTPResponder(object):
     def GET_NUM_OBJECTS(self, p):
         if p.p2 != 0:
             raise MTPError('SPECIFICATION_BY_FORMAT_UNSUPPORTED')
-        if p.p1 == 0xffffffff: # all storage
-            num = len(self.storage.handles(p.p3))
         else:
-            num = len(self.storage[p.p1].handles(p.p3))
+            num = len(self.sm.handles(p.p1, p.p3))
         return (num, )
 
     @operation
@@ -181,10 +186,8 @@ class MTPResponder(object):
     def GET_OBJECT_HANDLES(self, p):
         if p.p2 != 0:
             raise MTPError('SPECIFICATION_BY_FORMAT_UNSUPPORTED')
-        if p.p1 == 0xffffffff: # all storage
-            data = DataType.formats['AUINT32'].build(list(self.storage.handles(p.p3)))
         else:
-            data = DataType.formats['AUINT32'].build(list(self.storage[p.p1].handles(p.p3)))
+            data = DataType.formats['AUINT32'].build(list(self.sm.handles(p.p1, p.p3)))
 
         logger.debug(' '.join(str(x) for x in ('Data:', *DataType.formats['AUINT32'].parse(data))))
         return (data, ())
@@ -193,14 +196,14 @@ class MTPResponder(object):
     @sender
     @session
     def GET_OBJECT_INFO(self, p):
-        data = self.storage.object(p.p1).build()
+        data = self.hm[p.p1].build()
         return (data, ())
 
     @operation
     @sender
     @session
     def GET_OBJECT(self, p):
-        f = self.storage.object(p.p1).open(mode='rb')
+        f = self.hm[p.p1].open(mode='rb')
         return (f.read(), ())
 
     #TODO: DELETE_OBJECT
@@ -242,7 +245,7 @@ class MTPResponder(object):
     @sender
     @session
     def GET_PARTIAL_OBJECT(self, p):
-        f = self.storage.object(p.p1).open(mode='rb')
+        f = self.hm[p.p1].open(mode='rb')
         f.seek(p.p2, 0)
         data = f.read(p.p3)
         return (data, (len(data),))

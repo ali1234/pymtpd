@@ -11,10 +11,7 @@ IN_MASK = flags.ATTRIB | flags.CREATE | flags.DELETE | flags.MODIFY | flags.MOVE
 import mtp.constants
 from mtp.adapters import MTPString
 from mtp.exceptions import MTPError
-from mtp.object import Object
-from mtp.packets import MTPEvent
-
-
+from mtp.filesystem import FSRootObject
 
 
 StorageType = Enum(Int16ul, **dict(mtp.constants.storage_types))
@@ -32,183 +29,100 @@ StorageInfo = Struct(
     'volume_identifier' / Default(MTPString, u''),
 )
 
-class BaseStorage(object):
+class Storage(object):
 
-    """Implements basic storage functions: ID, handles, object container."""
+    """Basic storage, always empty.."""
 
-    counter = itertools.count(0x10001)
-
-    def __init__(self, name, writable=False):
-        self._id = next(self.counter)
-        self._name = name
-        self._writable = writable
-        self._objects = dict()
-        logger.debug('Connect %s: %x, %s' % (type(self).__name__, self._id, self._name))
+    def __init__(self, name, storagemanager):
+        self.name = name
+        self.sm = storagemanager
+        self.sm.register(self)
+        logger.debug('Connect %s: %x, %s' % (type(self).__name__, self.storage_id, self.name))
 
     def disconnect(self):
-        logger.debug('Disconnect %s: %x, %s' % (type(self).__name__, self._id, self._name))
+        logger.debug('Disconnect %s: %x, %s' % (type(self).__name__, self.storage_id, self.name))
 
     def build(self):
-        return StorageInfo.build(dict(max_capacity=1000000000, free_space=100000000, volume_identifier=self._name,
-                                      storage_description=self._name))
+        return StorageInfo.build(dict(max_capacity=self.capacity(), free_space=self.free_space(), volume_identifier=self.name,
+                                      storage_description=self.name))
+
+    def capacity(self):
+        return 1024*1024*16
+
+    def free_space(self):
+        return 1024*1024*5
 
     def handles(self, parent=0):
-        if parent == 0:
-            return self._objects.keys()
-        elif parent == 0xffffffff:  # yes, the spec is really dumb
-            return (k for k, v in self._objects.items() if v._parent == None)
-        else:
-            try:
-                p = self._objects[parent]
-            except KeyError:
-                raise MTPError("INVALID_PARENT_OBJECT")
-            else:
-                return (k for k, v in self._objects.items() if v._parent == p)
+        return ()
 
     def __getitem__(self, item):
-        try:
-            return self._objects[item]
-        except KeyError:
+        raise MTPError('INVALID_OBJECT_HANDLE')
+
+
+
+class FilesystemStorage(Storage):
+
+    def __init__(self, friendlyname, path, storagemanager, handlemanager, watchmanager):
+        super().__init__(friendlyname, storagemanager)
+        self.hm = handlemanager
+        self.wm = watchmanager
+        self.root = FSRootObject(path, self, self.hm, self.wm)
+
+    def handles(self, recurse = False):
+        return self.root.handles(recurse)
+
+    def __getitem__(self, item):
+        obj = self.hm[item]
+        if obj.storage != self:
             raise MTPError('INVALID_OBJECT_HANDLE')
-
-    def __delitem__(self, item):
-        try:
-            del self._objects[item]
-        except KeyError:
-            raise MTPError('INVALID_OBJECT_HANDLE')
-
-class FilesystemStorageInconsistency(Exception):
-    """Exception raised if handle<->object mapping is out of sync."""
-    pass
-
-class FilesystemStorage(BaseStorage):
-
-    """Implements a storage backed by a filesystem."""
-
-    def __init__(self, name, path, writable=False, eventcb=lambda **kwargs: None, loop=None):
-        super().__init__(name, writable)
-        self._path = pathlib.Path(path)
-        self.__bywd = dict()
-        self.__bypath = dict()
-        if loop == None:
-            loop = asyncio.get_event_loop()
-        self.__eventcb = eventcb
-        self.__loop = loop
-        self.__inotify = INotify()
-        self.dirscan(self._path) # objects in root dir have no parent
-        self.__loop.add_reader(self.__inotify.fd, self.__inotify_event)
-
-    def dirscan(self, path, parent=None):
-        wd = self.__inotify.add_watch(path, IN_MASK)
-        self.__bywd[wd] = parent
-        for fz in path.iterdir():
-            obj = Object(self, fz, parent)
-            self._objects[obj._handle] = obj
-            self.__bypath[obj._path] = obj
-            if fz.is_dir():
-                self.dirscan(fz, obj)
-
-    def __inotify_event(self):
-        # exceptions here should bubble out to the function and trigger a restart.
-        for event in self.__inotify.read():
-            parent = self.__bywd[event.wd]
-            if parent is None:
-                path = event.name
-            else:
-                path = str(pathlib.Path(parent._path) / event.name)
-
-            if event.mask & (flags.ATTRIB | flags.MODIFY):
-                logger.info('MODIFY: %s:%s' % (self._name, path))
-                # This one is simple. Just notify that the object changed. Note that gvfs-mtp ignores this anyway.
-                handle = self.__bypath[path]._handle
-                self.__eventcb(code='OBJECT_INFO_CHANGED', p1=handle)
-
-            elif event.mask & (flags.CREATE):
-                logger.info('CREATE: %s:%s' % (self._name, path))
-                # This one is simple for files, but if a directory was created then objects may have been
-                # created inside it before we received this event, and therefore before we added an inotify
-                # watch to the new directory. TODO: handle that case correctly.
-                fullpath = self._path / path
-                obj = Object(self, fullpath, parent)
-                self._objects[obj._handle] = obj
-                self.__bypath[path] = obj
-                if fullpath.is_dir():
-                    self.dirscan(fullpath, obj)
-                self.__eventcb(code='OBJECT_ADDED', p1=obj._handle)
-
-            elif event.mask & (flags.DELETE):
-                logger.info('DELETE: %s:%s' % (self._name, path))
-                # If a directory is deleted it must have already been empty, so nothing fancy is needed here.
-                handle = self.__bypath[path]._handle
-                del self._objects[handle]
-                del self.__bypath[path]
-                self.__eventcb(code='OBJECT_REMOVED', p1=handle)
-
-            elif event.mask & (flags.MOVED_FROM):
-                # TODO: Implement this
-                logger.info('MOVED_FROM: %s:%s' % (self._name, path))
-
-            elif event.mask & (flags.MOVED_TO):
-                # TODO: Implement this
-                logger.info('MOVED_TO: %s:%s' % (self._name, path))
-
-            elif event.mask & (flags.IGNORED):
-                logger.info('IGNORED: %s:%s' % (self._name, path))
-                # This event is received when a watched object is deleted.
-                # The watch is automatically removed on kernel side.
-                if self.__bywd[event.wd] is None:
-                    logger.critical('Store root directory appears to have been deleted.')
-                del self.__bywd[event.wd]
-
-            else:
-                logger.info('BUG: EVENT UNHANDLED: %s:%s %d' % (self._name, path, event.mask))
-
-            logger.info('Event handled successfully?')
-
-    def disconnect(self):
-        super().disconnect()
-        self.__inotify.close()
-        self.__loop.remove_reader(self.__inotify.fd)
+        else:
+            return obj
 
 
 
 class StorageManager(object):
 
-    def __init__(self, eventcb, loop, *stores):
-        self.eventcb = eventcb
-        self.loop = loop
-        self.__stores = dict()
-        for s in stores:
-            self.add(s)
+    def __init__(self, handlemanager):
+        self.counter = itertools.count(0x10001)
+        self.stores = dict()
+        self.hm = handlemanager
+
+    def register(self, storage):
+        storage_id = next(self.counter)
+        storage.storage_id = storage_id
+        self.stores[storage_id] = storage
+
+    def unregister(self, storage):
+        del self.stores[storage.storage_id]
+        del storage.storage_id
 
     def ids(self):
-        return self.__stores.keys()
+        return self.stores.keys()
 
-    def handles(self, parent=0):
-        return itertools.chain(s.handles(parent) for s in self.__stores.values())
+    def handles(self, storage, parent):
+        if parent == 0: # all objects
+            if storage == 0xffffffff: # all storage
+                return self.hm.handles()
+            else:
+                return self.stores[storage].handles(recurse=True)
 
-    def object(self, handle):
-        for s in self.__stores.values():
-            try:
-                return s[handle]
-            except MTPError:
-                continue
-        raise MTPError('INVALID_OBJECT_HANDLE')
+        elif parent == 0xffffffff: # root objects
+            if storage == 0xffffffff:
+                return itertools.chain(s.handles(recurse=False) for s in self.stores)
+            else:
+                return self.stores[storage].handles(recurse=False)
 
-    def add(self, store):
-        self.__stores[store._id] = store
-        self.eventcb(code='STORE_ADDED', p1=store._id)
+        else: # in dir
+            if storage == 0xffffffff:
+                return self.hm[parent].handles(recurse=False)
+            else:
+                return self.stores[storage][parent].handles(recurse=False)
 
     def __getitem__(self, key):
         try:
-            return self.__stores[key]
+            return self.stores[key]
         except KeyError:
             raise MTPError('STORE_NOT_AVAILABLE')
-
-    def __delitem__(self, key):
-        self.__stores[key].disconnect()
-        del self.__stores[key]
-        self.eventcb(code='STORE_ADDED', p1=key)
 
 
 

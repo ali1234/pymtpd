@@ -37,35 +37,4 @@ ObjectInfo = Struct(
 )
 
 
-class Object(object):
-
-    counter = itertools.count(1) # start object IDs from 1
-
-    def __init__(self, storage, path, parent):
-        self._storage = storage
-        self._handle = next(self.counter)
-        self._path = str(path.relative_to(self._storage._path))
-        self._parent = parent
-        logger.debug('Add object: %d -> %s:%s' % (self._handle, self._storage._path, self._path))
-
-    def path(self):
-        return self._storage._path / self._path
-
-    def build(self):
-        path = self.path()
-        stat = path.stat()
-        is_dir = path.is_dir()
-        return ObjectInfo.build(dict(
-            storage_id=self._storage._id,
-            compressed_size=stat.st_size,
-            parent_object=0 if self._parent is None else self._parent._handle,
-            filename=path.name,
-            format='ASSOCIATION' if is_dir else 'UNDEFINED',
-            association_type='GENERIC_FOLDER' if is_dir else 'UNDEFINED',
-            ctime = datetime.datetime.fromtimestamp(stat.st_ctime),
-            mtime = datetime.datetime.fromtimestamp(stat.st_mtime),
-        ))
-
-    def open(self, *args):
-        return self.path().open(*args)
 
