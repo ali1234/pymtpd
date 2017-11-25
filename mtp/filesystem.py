@@ -38,8 +38,8 @@ class FSObject(object):
             mtime = datetime.datetime.fromtimestamp(stat.st_mtime),
         ))
 
-    def open(self, *args):
-        return self.path().open(*args)
+    def open(self, **kwargs):
+        return self.path().open(**kwargs)
 
 
 
