@@ -127,7 +127,8 @@ class MTPResponder(object):
         if length >= 0: # geq because we need to handle null sentinal packet iff len(data) is a multiple of 512
             bio.write(self.outep.read(length))
         data = bytes(bio.getbuffer())
-        #TODO: check code
+        if mtpdata.code != code:
+            raise MTPError('INVALID_DATASET')
         if mtpdata.tx_id != tx_id:
             raise MTPError('INVALID_TRANSACTION_ID')
         if len(data) != mtpdata.length:
