@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import io
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -100,18 +102,37 @@ class MTPResponder(object):
 
 
     def senddata(self, code, tx_id, data):
-        # TODO: handle transfers bigger than one packet
-        mtpdata = MTPData.build(dict(code=code, tx_id=tx_id, data=data))
+        length = len(data)
+        bio = io.BytesIO(data)
+        mtpdata = MTPData.build(dict(length=length+12, code=code, tx_id=tx_id, data=data))
         self.inep.write(mtpdata)
+        if length == 0:
+            return
+        while length >= 512:
+            self.inep.write(bio.read(512))
+            length -= 512
+        if length >= 0: # geq because we need to send null sentinal packet iff len(data) is a multiple of 512
+            self.inep.write(bio.read(length))
 
     def receivedata(self, code, tx_id):
-        # TODO: handle transfers bigger than one packet
         buf = self.outep.read()
         mtpdata = MTPData.parse(buf)
+        length = mtpdata.length-12
+        if length == 0:
+            return b''
+        bio = io.BytesIO()
+        while length >= 512:
+            bio.write(self.outep.read(512))
+            length -= 512
+        if length >= 0:
+            bio.write(self.outep.read(length))
+        data = bytes(bio.getbuffer())
         #TODO: check code
         if mtpdata.tx_id != tx_id:
             raise MTPError('INVALID_TRANSACTION_ID')
-        return mtpdata.data
+        if len(data) != mtpdata.length:
+            raise MTPError('INCOMPLETE_TRANSFER')
+        return data
 
     def respond(self, code, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
         args = locals()

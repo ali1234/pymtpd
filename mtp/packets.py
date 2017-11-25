@@ -37,11 +37,10 @@ MTPResponse = Struct(
 )
 
 MTPData = Struct(
-    'length' / Rebuild(Int32ul, 12+len_(this.data)),
+    'length' / Int32ul,
     'type' / Const(ContainerType, 'DATA'),
     'code' / OperationCode,
     'tx_id' / Int32ul,
-    'data' / GreedyBytes,
 )
 
 MTPEvent = Struct(
