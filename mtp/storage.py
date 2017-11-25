@@ -66,7 +66,7 @@ class FilesystemStorage(Storage):
         super().__init__(friendlyname, storagemanager)
         self.hm = handlemanager
         self.wm = watchmanager
-        self.root = FSRootObject(path, self, self.hm, self.wm)
+        self.root = FSRootObject(path, self)
 
     def handles(self, recurse = False):
         return self.root.handles(recurse)

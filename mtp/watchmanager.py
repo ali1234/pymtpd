@@ -17,6 +17,7 @@ class WatchManager(object):
         self.watches[wd] = obj
 
     def unregister(self, obj):
+        logger.debug('unregister %s' % (str(obj.path())))
         self.inotify.rm_watch(obj.wd)
         del self.watches[obj.wd]
         del obj.wd
@@ -26,4 +27,9 @@ class WatchManager(object):
 
     def dispatch(self):
         for event in self.inotify.read():
-            self.watches[event.wd].inotify(event)
+            if event.mask & flags.IGNORED:
+                if event.wd in self.watches:
+                    del self.watches[event.wd].wd
+                    del self.watches[event.wd]
+            else:
+                self.watches[event.wd].inotify(event)

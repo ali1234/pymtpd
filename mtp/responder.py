@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import io
+import shutil
 
 import logging
 logger = logging.getLogger(__name__)
@@ -88,7 +89,7 @@ class MTPResponder(object):
         )
 
         self.wm = WatchManager()
-        self.hm = HandleManager()
+        self.hm = HandleManager(self.sendevent)
         self.sm = StorageManager(self.hm)
 
         FilesystemStorage('Files', '/tmp/mtp', self.sm, self.hm, self.wm)
@@ -228,7 +229,16 @@ class MTPResponder(object):
         f = self.hm[p.p1].open(mode='rb')
         return (f.read(), ())
 
-    #TODO: DELETE_OBJECT
+    @operation
+    @session
+    def DELETE_OBJECT(self, p):
+        obj = self.hm[p.p1]
+        obj.predelete()
+        if obj.path().is_dir():
+            shutil.rmtree(str(obj.path()))
+        else:
+            obj.path().unlink()
+        return ()
 
     #TODO: SEND_OBJECT_INFO
 
@@ -262,6 +272,7 @@ class MTPResponder(object):
             self.properties.reset()
         else:
             self.properties[DevicePropertyCode.decoding[p.p1]].reset()
+        return ()
 
     @operation
     @sender

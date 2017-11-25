@@ -20,6 +20,13 @@ class FSObject(object):
     def path(self):
         return self.parent.path() / self.name
 
+    def unwatch(self):
+        pass
+
+    def predelete(self):
+        self.unwatch()
+        self.storage.hm.predelete(self)
+
     def handles(self, recurse):
         return ()
 
@@ -45,23 +52,26 @@ class FSObject(object):
 
 class FSDirObject(FSObject):
 
-    def __init__(self, path, parent, storage, handlemanager, watchmanager):
+    def __init__(self, path, parent, storage):
         super().__init__(path, parent, storage)
         self.children = {}
-        self.watchmanager = watchmanager
-        self.watchmanager.register(self)
-        self.handlemanager = handlemanager
+        self.storage.wm.register(self)
 
         for fz in self.path().iterdir():
             self.add_child(fz)
 
     def add_child(self, path):
         if path.is_dir():
-            obj = FSDirObject(path, self, self.storage, self.handlemanager, self.watchmanager)
+            obj = FSDirObject(path, self, self.storage)
         else:
             obj = FSObject(path, self, self.storage)
         self.children[obj.name] = obj
-        self.handlemanager.register(obj)
+        self.storage.hm.register(obj)
+
+    def unwatch(self):
+        self.storage.wm.unregister(self)
+        for c in self.children:
+            c.unwatch()
 
     def inotify(self, event):
         if event.mask & (flags.ATTRIB | flags.MODIFY):
@@ -77,6 +87,9 @@ class FSDirObject(FSObject):
         elif event.mask & (flags.DELETE):
             logger.info('DELETE: %s:%s %s' % (self.storage.name, self.path(), event.name))
             # If a directory is deleted it must have already been empty, so nothing fancy is needed here.
+            obj = self.children[event.name]
+            self.storage.hm.unregister(obj)
+            del self.children[event.name]
 
         elif event.mask & (flags.MOVED_FROM):
             logger.info('MOVED_FROM: %s:%s %s' % (self.storage.name, self.path(), event.name))
@@ -85,11 +98,6 @@ class FSDirObject(FSObject):
         elif event.mask & (flags.MOVED_TO):
             logger.info('MOVED_TO: %s:%s %s' % (self.storage.name, self.path(), event.name))
             # TODO: Implement this
-
-        elif event.mask & (flags.IGNORED):
-            logger.info('IGNORED: %s:%s %s' % (self.storage.name, self.path(), event.name))
-            # This event is received when a watched object is deleted.
-            # The watch is automatically removed on kernel side.
 
         else:
             logger.info('EVENT UNHANDLED: %s:%s %s' % (self.storage.name, self.path(), event.name))
@@ -100,16 +108,16 @@ class FSDirObject(FSObject):
         if recurse:
             return itertools.chain(self.handles(False), *(c.handles(True) for c in self.children.values()))
         else:
-            return (c.handle for c in self.children.values())
+            return (c.handle for c in self.children.values() if hasattr(c, 'handle'))
 
 
 
 class FSRootObject(FSDirObject):
 
-    def __init__(self, path, storage, handlemanager, watchmanager):
+    def __init__(self, path, storage):
         self.storage = storage
         self._path = pathlib.Path(path)
-        super().__init__(self._path, None, self.storage, handlemanager, watchmanager)
+        super().__init__(self._path, None, self.storage)
 
     def path(self):
         return self._path
