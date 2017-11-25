@@ -77,6 +77,10 @@ class FSDirObject(FSObject):
         if event.mask & (flags.ATTRIB | flags.MODIFY):
             logger.debug('MODIFY: %s:%s %s' % (self.storage.name, self.path(), event.name))
             # This one is simple. Just notify that the object changed. Note that gvfs-mtp ignores this anyway.
+            if event.name == '':
+                pass # we might need to handle this later
+            else:
+                self.storage.hm.eventcb(code='OBJECT_INFO_CHANGED', p1=self.children[event.name].handle)
 
         elif event.mask & (flags.CREATE):
             logger.debug('CREATE: %s:%s %s' % (self.storage.name, self.path(), event.name))
