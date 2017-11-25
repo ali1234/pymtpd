@@ -75,34 +75,34 @@ class FSDirObject(FSObject):
 
     def inotify(self, event):
         if event.mask & (flags.ATTRIB | flags.MODIFY):
-            logger.info('MODIFY: %s:%s %s' % (self.storage.name, self.path(), event.name))
+            logger.debug('MODIFY: %s:%s %s' % (self.storage.name, self.path(), event.name))
             # This one is simple. Just notify that the object changed. Note that gvfs-mtp ignores this anyway.
 
         elif event.mask & (flags.CREATE):
-            logger.info('CREATE: %s:%s %s' % (self.storage.name, self.path(), event.name))
+            logger.debug('CREATE: %s:%s %s' % (self.storage.name, self.path(), event.name))
             # This one is simple for files, but if a directory was created then objects may have been
             # created inside it before we received this event, and therefore before we added an inotify
             # watch to the new directory. TODO: handle that case correctly.
 
         elif event.mask & (flags.DELETE):
-            logger.info('DELETE: %s:%s %s' % (self.storage.name, self.path(), event.name))
+            logger.debug('DELETE: %s:%s %s' % (self.storage.name, self.path(), event.name))
             # If a directory is deleted it must have already been empty, so nothing fancy is needed here.
             obj = self.children[event.name]
             self.storage.hm.unregister(obj)
             del self.children[event.name]
 
         elif event.mask & (flags.MOVED_FROM):
-            logger.info('MOVED_FROM: %s:%s %s' % (self.storage.name, self.path(), event.name))
+            logger.debug('MOVED_FROM: %s:%s %s' % (self.storage.name, self.path(), event.name))
             # TODO: Implement this
 
         elif event.mask & (flags.MOVED_TO):
-            logger.info('MOVED_TO: %s:%s %s' % (self.storage.name, self.path(), event.name))
+            logger.debug('MOVED_TO: %s:%s %s' % (self.storage.name, self.path(), event.name))
             # TODO: Implement this
 
         else:
-            logger.info('EVENT UNHANDLED: %s:%s %s' % (self.storage.name, self.path(), event.name))
+            logger.warning('EVENT UNHANDLED: %s:%s %s' % (self.storage.name, self.path(), event.name))
 
-        logger.info('Event handled successfully?')
+        logger.debug('inotify event handling complete.')
 
     def handles(self, recurse=False):
         if recurse:

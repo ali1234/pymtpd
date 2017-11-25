@@ -105,7 +105,7 @@ class KAIOWriter(KAIOFile):
         iocb_.u.c.resfd = self.evfd
         iocbptr = ctypes.pointer(iocb_)
         result = io_submit(self.ctx, 1, ctypes.byref(iocbptr))
-        logger.warning('event written')
+        logger.debug('event written')
         # TODO: What happens when buf, iocb_, iocbptr go out of scope?
 
     def pump(self):
@@ -113,7 +113,7 @@ class KAIOWriter(KAIOFile):
         (n_e,) = struct.unpack('Q', res)
         e = (io_event*n_e)()
         ret = io_getevents(self.ctx, n_e, n_e, e, None)
-        logger.warning('pumped %d of %d events' % (ret, n_e))
+        logger.debug('pumped %d of %d events' % (ret, n_e))
         for i in range(ret):
             logger.warning(' event %d - %d' % (i, e[i].res))
             # TODO: Free buf, iocb_, iocbptr here?
