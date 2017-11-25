@@ -18,10 +18,16 @@ class WatchManager(object):
         self.watches[wd] = obj
 
     def unregister(self, obj):
-        logger.debug('unregister %s' % (str(obj.path())))
-        self.inotify.rm_watch(obj.wd)
-        del self.watches[obj.wd]
-        self.ignored[obj.wd] = obj
+        logger.debug('Unwatching %s.' % (obj.path()))
+        try:
+            del self.watches[obj.wd]
+            self.inotify.rm_watch(obj.wd)
+        except AttributeError:
+            logger.error('Object %s has no watch descriptor.' % (obj.path()))
+        except KeyError:
+            logger.error('Object %s has a watch descriptor but is not known to watch manager.' % (obj.path()))
+        else:
+            self.ignored[obj.wd] = obj
 
     def fileno(self):
         return self.inotify.fd

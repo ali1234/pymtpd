@@ -31,16 +31,15 @@ class HandleManager(object):
         del obj.handle
 
     def predelete(self, obj):
-        try:
-            handle = obj.handle
-        except AttributeError:
-            logger.error('Object not registered.')
-            return
+        logger.debug('Preparing %s for deletion.' % (obj.path()))
         try:
             del self.objects[obj.handle]
-            self._predelete[obj.handle] = obj
+        except AttributeError:
+            logger.error('Object %s has no handle.' % (obj.path()))
         except KeyError:
-            raise MTPError('INVALID_OBJECT_HANDLE')
+            logger.error('Object %s has a handle but is not known to handle manager.' % (obj.path()))
+        else:
+            self._predelete[obj.handle] = obj
 
     def handles(self):
         return self.objects.keys()
