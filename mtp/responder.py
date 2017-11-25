@@ -108,7 +108,7 @@ class MTPResponder(object):
         self.inep.write(mtpdata)
         if length == 0:
             return
-        while length >= 512:
+        while length >= 512: # TODO: this should be connection max packet size rather than 512
             self.inep.write(bio.read(512))
             length -= 512
         if length >= 0: # geq because we need to send null sentinal packet iff len(data) is a multiple of 512
@@ -121,10 +121,10 @@ class MTPResponder(object):
         if length == 0:
             return b''
         bio = io.BytesIO()
-        while length >= 512:
+        while length >= 512: # TODO: this should be connection max packet size rather than 512
             bio.write(self.outep.read(512))
             length -= 512
-        if length >= 0:
+        if length >= 0: # geq because we need to handle null sentinal packet iff len(data) is a multiple of 512
             bio.write(self.outep.read(length))
         data = bytes(bio.getbuffer())
         #TODO: check code
