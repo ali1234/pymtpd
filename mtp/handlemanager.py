@@ -18,6 +18,7 @@ class HandleManager(object):
         handle = next(self.counter)
         obj.handle = handle
         self.objects[handle] = obj
+        self.eventcb(code='OBJECT_ADDED', p1=obj.handle) # TODO: don't do this if the object is in precreate.
         return handle
 
     def unregister(self, obj):

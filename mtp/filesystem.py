@@ -87,6 +87,10 @@ class FSDirObject(FSObject):
             # This one is simple for files, but if a directory was created then objects may have been
             # created inside it before we received this event, and therefore before we added an inotify
             # watch to the new directory. TODO: handle that case correctly.
+            if event.name in self.children:
+                logger.warning('Received create event for an object we already know about: %s %s' % (self.path(), event.name))
+            else:
+                self.add_child(self.path() / event.name)
 
         elif event.mask & (flags.DELETE):
             logger.debug('DELETE: %s:%s %s' % (self.storage.name, self.path(), event.name))
