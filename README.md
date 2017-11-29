@@ -21,20 +21,24 @@ the gadget. Without the patch the kernel will crash.
        dummy_hcd
        libcomposite
 
-2. Python modules required: functionfs and construct.
+2. Python modules required: functionfs, construct, inotify-simple
 
    You can run these as regular user or root depending on where you
-want them installed. It works either way.
+want them installed. It works either way. I recommend not using root
+if you're just testing or developing.
 
        pip3 install functionfs
        pip3 install construct
+       pip3 install inotify-simple
 
 3. As root, run ./pymtpd
 
    It configures all the configfs stuff and mounts the functionfs.
 Then it starts handling MTP requests.
 
-4. As root, run mtp-detect from mtp-tools package.
+4. Open your file manager and you should see an MTP device.
 
-   You should see some output from pymtpd. mtp-detect will crash,
-because pymtpd is not fully implemented yet.
+   It shares the contents of /tmp/mtp (which will be created on start
+up.) Copy some files into the directory and they should show up in the
+file manager immediately. It is not feature complete yet, but browsing
+and fetching files should work.
