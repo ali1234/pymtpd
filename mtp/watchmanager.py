@@ -44,4 +44,9 @@ class WatchManager(object):
                 else:
                     logger.warning('Received ignore event for object we were not watching: %s %s.' % (event.path, event.name))
             else:
-                self.watches[event.wd].inotify(event)
+                if event.wd in self.watches:
+                    self.watches[event.wd].inotify(event)
+                elif event.wd in self.ignored:
+                    pass
+                else:
+                    logger.warning('Received event for object we were not watching: %s %s.' % (event.path, event.name))
