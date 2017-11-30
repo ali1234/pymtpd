@@ -47,11 +47,15 @@ class FSObject(object):
     def open(self, **kwargs):
         return self.path().open(**kwargs)
 
+    def verify(self):
+        assert(self.path().exists())
+        assert(not self.path().is_dir())
+
 
 
 class FSDirObject(FSObject):
 
-    def __init__(self, path, parent, storage, send_events=True):
+    def __init__(self, path, parent, storage, send_events):
         super().__init__(path, parent, storage)
         self.children = {}
         self._predelete = set()
@@ -61,18 +65,18 @@ class FSDirObject(FSObject):
         for fz in self.path().iterdir():
             self.add_child(fz, send_events)
 
-    def add_child(self, path, send_events=True):
+    def add_child(self, path, send_events):
         if path.is_dir():
-            obj = FSDirObject(path, self, self.storage, send_events=send_events)
+            obj = FSDirObject(path, self, self.storage, send_events)
         else:
             obj = FSObject(path, self, self.storage)
         self.children[obj.name] = obj
         try:
             self._precreate.remove(obj.name)
         except KeyError:
-            self.storage.hm.register(obj, send_event=send_events)
+            self.storage.hm.register(obj, send_events)
         else:
-            self.storage.hm.register(obj, send_event=False)
+            self.storage.hm.register(obj, False)
 
     def predelete(self, name):
         self._predelete.add(name)
@@ -87,7 +91,7 @@ class FSDirObject(FSObject):
 
     def unregister_children(self):
         for c in self.children:
-            self.hm.unregister(c, send_event=False)
+            self.hm.unregister(c, False)
             c.unregister_children()
 
     def inotify(self, event):
@@ -107,7 +111,7 @@ class FSDirObject(FSObject):
             if event.name in self.children:
                 logger.warning('Received create event for an object we already know about: %s %s' % (self.path(), event.name))
             else:
-                self.add_child(self.path() / event.name, send_events=True)
+                self.add_child(self.path() / event.name, True)
 
         elif event.mask & (flags.DELETE):
             logger.debug('DELETE: %s:%s %s' % (self.storage.name, self.path(), event.name))
@@ -116,9 +120,9 @@ class FSDirObject(FSObject):
             try:
                 self._predelete.remove(event.name)
             except KeyError:
-                self.storage.hm.unregister(obj, send_event=True)
+                self.storage.hm.unregister(obj, True)
             else:
-                self.storage.hm.unregister(obj, send_event=False)
+                self.storage.hm.unregister(obj, False)
             del self.children[event.name]
 
         elif event.mask & (flags.MOVED_FROM):
@@ -140,6 +144,21 @@ class FSDirObject(FSObject):
         else:
             return (c.handle for c in self.children.values() if hasattr(c, 'handle'))
 
+    def verify(self):
+        logger.debug('Verifying: %s' % (self.path()))
+        assert(self.path().exists())
+        assert(self.path().is_dir())
+        assert(hasattr(self, 'wd'))
+        assert(self.storage.wm.watches[self.wd] == self)
+
+        for n,c in self.children.items():
+            c.verify()
+            assert(c.name == n)
+            assert(c.parent == self)
+            assert(hasattr(c, 'handle'))
+            assert(self.storage.hm.objects[c.handle] == c)
+        for p in self.path().iterdir():
+            assert(p.name in self.children)
 
 
 class FSRootObject(FSDirObject):
@@ -152,6 +171,19 @@ class FSRootObject(FSDirObject):
     def path(self):
         return self._path
 
+    def inotify(self, event):
+        if event.mask & (flags.ATTRIB | flags.MODIFY) and event.name == '':
+            # run a cache verification
+            logger.warning('Cache verification started')
+            self.verify()
+            logger.warning('Cache verification finished')
+        else:
+            super().inotify(event)
+
+    def verify(self):
+        super().verify()
+        self.storage.hm.verify()
+        self.storage.wm.verify()
 
 
 if __name__ == '__main__':

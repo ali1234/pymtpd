@@ -53,3 +53,7 @@ class HandleManager(object):
             return self.objects[handle]
         except KeyError:
             raise MTPError('INVALID_OBJECT_HANDLE')
+
+    def verify(self):
+        for obj in self.objects.values():
+            assert(obj.path().exists())

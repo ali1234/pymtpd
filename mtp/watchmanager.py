@@ -50,3 +50,7 @@ class WatchManager(object):
                     pass
                 else:
                     logger.warning('Received event for object we were not watching: %s %s.' % (event.path, event.name))
+
+    def verify(self):
+        for obj in self.watches.values():
+            assert(obj.path().exists())
