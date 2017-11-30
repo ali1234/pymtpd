@@ -23,9 +23,8 @@ class FSObject(object):
     def unwatch(self):
         pass
 
-    def predelete(self):
-        self.unwatch()
-        self.storage.hm.predelete(self)
+    def unregister_children(self):
+        pass
 
     def handles(self, recurse):
         return ()
@@ -52,26 +51,44 @@ class FSObject(object):
 
 class FSDirObject(FSObject):
 
-    def __init__(self, path, parent, storage):
+    def __init__(self, path, parent, storage, send_events=True):
         super().__init__(path, parent, storage)
         self.children = {}
+        self._predelete = set()
+        self._precreate = set()
         self.storage.wm.register(self)
 
         for fz in self.path().iterdir():
-            self.add_child(fz)
+            self.add_child(fz, send_events)
 
-    def add_child(self, path):
+    def add_child(self, path, send_events=True):
         if path.is_dir():
-            obj = FSDirObject(path, self, self.storage)
+            obj = FSDirObject(path, self, self.storage, send_events=send_events)
         else:
             obj = FSObject(path, self, self.storage)
         self.children[obj.name] = obj
-        self.storage.hm.register(obj)
+        try:
+            self._precreate.remove(obj.name)
+        except KeyError:
+            self.storage.hm.register(obj, send_event=send_events)
+        else:
+            self.storage.hm.register(obj, send_event=False)
+
+    def predelete(self, name):
+        self._predelete.add(name)
+
+    def precreate(self, name):
+        self._precreate.add(name)
 
     def unwatch(self):
         self.storage.wm.unregister(self)
         for c in self.children:
             c.unwatch()
+
+    def unregister_children(self):
+        for c in self.children:
+            self.hm.unregister(c, send_event=False)
+            c.unregister_children()
 
     def inotify(self, event):
         if event.mask & (flags.ATTRIB | flags.MODIFY):
@@ -86,17 +103,22 @@ class FSDirObject(FSObject):
             logger.debug('CREATE: %s:%s %s' % (self.storage.name, self.path(), event.name))
             # This one is simple for files, but if a directory was created then objects may have been
             # created inside it before we received this event, and therefore before we added an inotify
-            # watch to the new directory. TODO: handle that case correctly.
+            # watch to the new directory.
             if event.name in self.children:
                 logger.warning('Received create event for an object we already know about: %s %s' % (self.path(), event.name))
             else:
-                self.add_child(self.path() / event.name)
+                self.add_child(self.path() / event.name, send_events=True)
 
         elif event.mask & (flags.DELETE):
             logger.debug('DELETE: %s:%s %s' % (self.storage.name, self.path(), event.name))
             # If a directory is deleted it must have already been empty, so nothing fancy is needed here.
             obj = self.children[event.name]
-            self.storage.hm.unregister(obj)
+            try:
+                self._predelete.remove(event.name)
+            except KeyError:
+                self.storage.hm.unregister(obj, send_event=True)
+            else:
+                self.storage.hm.unregister(obj, send_event=False)
             del self.children[event.name]
 
         elif event.mask & (flags.MOVED_FROM):
@@ -125,7 +147,7 @@ class FSRootObject(FSDirObject):
     def __init__(self, path, storage):
         self.storage = storage
         self._path = pathlib.Path(path)
-        super().__init__(self._path, None, self.storage)
+        super().__init__(self._path, None, self.storage, send_events=False)
 
     def path(self):
         return self._path

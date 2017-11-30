@@ -11,36 +11,39 @@ class HandleManager(object):
     def __init__(self, eventcb):
         self.counter = itertools.count(1)
         self.objects = {}
-        self._predelete = {}
         self.eventcb = eventcb
 
-    def register(self, obj):
-        handle = next(self.counter)
+    def register(self, obj, send_event=True, handle=None):
+        if handle is None:
+            handle = next(self.counter)
+        elif handle in self.objects:
+            logger.error('Trying to register an object to an already used handle.')
+        if hasattr(obj, 'handle'):
+            if obj.handle in self.objects:
+                logger.error('Object is already registered.')
+            else:
+                logger.error('Object already has a handle but it is not known to this handle manager.')
         obj.handle = handle
         self.objects[handle] = obj
-        self.eventcb(code='OBJECT_ADDED', p1=obj.handle) # TODO: don't do this if the object is in precreate.
+        if send_event:
+            self.eventcb(code='OBJECT_ADDED', p1=obj.handle)
         return handle
 
-    def unregister(self, obj):
-        if obj.handle in self._predelete:
-            del self._predelete[obj.handle]
-        elif obj.handle in self.objects:
-            del self.objects[obj.handle]
-            self.eventcb(code='OBJECT_REMOVED', p1=obj.handle)
-        else:
-            logger.error('Object has handle but is not registered')
-        del obj.handle
-
-    def predelete(self, obj):
-        logger.debug('Preparing %s for deletion.' % (obj.path()))
+    def unregister(self, obj, send_event=True):
         try:
-            del self.objects[obj.handle]
+            handle = obj.handle
+            del self.objects[handle]
         except AttributeError:
             logger.error('Object %s has no handle.' % (obj.path()))
         except KeyError:
             logger.error('Object %s has a handle but is not known to handle manager.' % (obj.path()))
         else:
-            self._predelete[obj.handle] = obj
+            del obj.handle
+            if send_event:
+                self.eventcb(code='OBJECT_REMOVED', p1=handle)
+
+    def reserve_handle(self):
+        return next(self.counter)
 
     def handles(self):
         return self.objects.keys()
