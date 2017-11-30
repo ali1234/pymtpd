@@ -86,11 +86,14 @@ class StorageManager(object):
         self.counter = itertools.count(0x10001)
         self.stores = dict()
         self.hm = handlemanager
+        self.default_store = None
 
     def register(self, storage):
         storage_id = next(self.counter)
         storage.storage_id = storage_id
         self.stores[storage_id] = storage
+        if self.default_store == None:
+            self.default_store = storage
 
     def unregister(self, storage):
         del self.stores[storage.storage_id]

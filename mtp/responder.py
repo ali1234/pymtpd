@@ -12,6 +12,7 @@ from mtp.packets import MTPOperation, MTPResponse, MTPData, MTPEvent, DataType, 
 from mtp.watchmanager import WatchManager
 from mtp.handlemanager import HandleManager
 from mtp.storage import StorageManager, FilesystemStorage
+from mtp.object import ObjectInfo
 
 
 operations = {}
@@ -240,7 +241,30 @@ class MTPResponder(object):
             obj.path().unlink()
         return ()
 
-    #TODO: SEND_OBJECT_INFO
+    @operation
+    @receiver
+    @session
+    def SEND_OBJECT_INFO(self, p, data):
+        if p.p1 == 0:
+            if p.p2 != 0:
+                logger.warning('SEND_OBJECT_INFO: parent handle specified without storage. Continuing anyway.')
+            storage = self.sm.default_store
+        else:
+            storage = self.sm[p.p1]
+
+        if p.p2 == 0xffffffff:
+            parent = storage.root
+        elif p.p2 == 0:
+            parent = storage.root
+        else:
+            parent = self.hm[p.p2]
+            if parent.storage != storage:
+                logger.warning('SEND_OBJECT_INFO: parent handle is in a different storage. Continuing anyway.')
+            if not parent.path().is_dir():
+                raise MTPError('INVALID_PARENT_OBJECT')
+
+        info = ObjectInfo.parse(data)
+        # TODO: finish this...
 
     #TODO: SEND_OBJECT
 
