@@ -33,7 +33,7 @@ class WatchManager(object):
         return self.inotify.fd
 
     def dispatch(self):
-        for event in self.inotify.read():
+        for event in self.inotify.read(read_delay=100):
             if event.mask & flags.IGNORED:
                 if event.wd in self.watches:
                     del self.watches[event.wd].wd
