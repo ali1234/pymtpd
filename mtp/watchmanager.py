@@ -7,10 +7,11 @@ logger = logging.getLogger(__name__)
 
 class WatchManager(object):
 
-    def __init__(self):
+    def __init__(self, sendevents):
         self.inotify = INotify()
         self.watches = {}
         self.ignored = {}
+        self.sendevents = sendevents
 
     def register(self, obj):
         wd = self.inotify.add_watch(obj.path(), IN_MASK)
@@ -33,7 +34,7 @@ class WatchManager(object):
         return self.inotify.fd
 
     def dispatch(self):
-        for event in self.inotify.read(read_delay=100):
+        for event in self.inotify.read(read_delay=1000):
             if event.mask & flags.IGNORED:
                 if event.wd in self.watches:
                     del self.watches[event.wd].wd
@@ -50,6 +51,7 @@ class WatchManager(object):
                     pass
                 else:
                     logger.warning('Received event for object we were not watching: %s %s.' % (event.path, event.name))
+        self.sendevents()
 
     def verify(self):
         for obj in self.watches.values():

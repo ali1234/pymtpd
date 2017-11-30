@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import io
 import shutil
+import queue
 
 import logging
 logger = logging.getLogger(__name__)
@@ -89,19 +90,28 @@ class MTPResponder(object):
             ('SYNCHRONIZATION_PARTNER', '', True),
         )
 
-        self.wm = WatchManager()
-        self.hm = HandleManager(self.sendevent)
+        self.eventqueue = []
+        self.wm = WatchManager(self.sendevents)
+        self.hm = HandleManager(self.queueevent)
         self.sm = StorageManager(self.hm)
 
         FilesystemStorage('Files', '/tmp/mtp', self.sm, self.hm, self.wm)
 
         self.loop.add_reader(self.wm, self.wm.dispatch)
 
-    def sendevent(self, **kwargs):
+    def queueevent(self, **kwargs):
         if self.session_id is not None:
-            logger.debug('Send event %s' % (str(kwargs)))
-            self.intep.write(MTPEvent.build(kwargs))
+            self.eventqueue.append(kwargs)
 
+    def sendevents(self):
+        if len(self.eventqueue) > 10:
+            self.intep.write(MTPEvent.build(dict(code='UNREPORTED_STATUS')))
+            logger.warning('Event spam detected, dropped queue, sent UNREPORTED_STATUS instead.')
+        else:
+            for kwargs in self.eventqueue:
+                self.intep.write(MTPEvent.build(kwargs))
+                logger.debug('Send event %s' % (str(kwargs)))
+        self.eventqueue = []
 
     def senddata(self, code, tx_id, data):
         length = len(data)
