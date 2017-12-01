@@ -26,6 +26,15 @@ class FSObject(object):
     def unregister_children(self):
         pass
 
+    def delete(self):
+        self.unwatch()
+        self.unregister_children()
+        if self.path().is_dir():
+            shutil.rmtree(str(self.path()))
+        else:
+            self.path().unlink()
+        del self.parent.children[self.name]
+
     def handles(self, recurse):
         raise MTPError('INVALID_PARENT_HANDLE')
 
@@ -140,6 +149,10 @@ class FSRootObject(FSDirObject):
 
     def path(self):
         return self._path
+
+    def delete(self):
+        logger.error('Cannot delete the storage root.')
+        return
 
     def inotify(self, event):
         if event.mask & (flags.ATTRIB | flags.MODIFY) and event.name == '':

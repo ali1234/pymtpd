@@ -231,14 +231,7 @@ class MTPResponder(object):
     @operation
     @session
     def DELETE_OBJECT(self, p):
-        obj = self.hm[p.p1]
-        obj.unwatch()
-        obj.unregister_children()
-        obj.parent.predelete(obj.name)
-        if obj.path().is_dir():
-            shutil.rmtree(str(obj.path()))
-        else:
-            obj.path().unlink()
+        self.hm[p.p1].delete()
         return ()
 
     @operation
