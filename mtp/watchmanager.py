@@ -7,11 +7,9 @@ logger = logging.getLogger(__name__)
 
 class WatchManager(object):
 
-    def __init__(self, sendevents):
+    def __init__(self):
         self.inotify = INotify()
         self.watches = {}
-        self.ignored = {}
-        self.sendevents = sendevents
 
     def register(self, obj):
         wd = self.inotify.add_watch(obj.path(), IN_MASK)
@@ -27,8 +25,6 @@ class WatchManager(object):
             logger.error('Object %s has no watch descriptor.' % (obj.path()))
         except KeyError:
             logger.error('Object %s has a watch descriptor but is not known to watch manager.' % (obj.path()))
-        else:
-            self.ignored[obj.wd] = obj
 
     def fileno(self):
         return self.inotify.fd
@@ -39,19 +35,13 @@ class WatchManager(object):
                 if event.wd in self.watches:
                     del self.watches[event.wd].wd
                     del self.watches[event.wd]
-                elif event.wd in self.ignored:
-                    del self.ignored[event.wd].wd
-                    del self.ignored[event.wd]
                 else:
                     logger.warning('Received ignore event for object we were not watching: %s %s.' % (event.path, event.name))
             else:
                 if event.wd in self.watches:
                     self.watches[event.wd].inotify(event)
-                elif event.wd in self.ignored:
-                    pass
                 else:
                     logger.warning('Received event for object we were not watching: %s %s.' % (event.path, event.name))
-        self.sendevents()
 
     def verify(self):
         for obj in self.watches.values():

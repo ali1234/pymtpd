@@ -55,7 +55,7 @@ class FSObject(object):
 
 class FSDirObject(FSObject):
 
-    def __init__(self, path, parent, storage, send_events):
+    def __init__(self, path, parent, storage):
         super().__init__(path, parent, storage)
         self.children = {}
         self._predelete = set()
@@ -63,24 +63,15 @@ class FSDirObject(FSObject):
         self.storage.wm.register(self)
 
         for fz in self.path().iterdir():
-            self.add_child(fz, send_events)
+            self.add_child(fz)
 
-    def add_child(self, path, send_events):
+    def add_child(self, path):
         if path.is_dir():
-            obj = FSDirObject(path, self, self.storage, send_events)
+            obj = FSDirObject(path, self, self.storage)
         else:
             obj = FSObject(path, self, self.storage)
         self.children[obj.name] = obj
-        if obj.name in self._precreate:
-            self.storage.hm.register(obj, False, self._precreate[obj.name])
-        else:
-            self.storage.hm.register(obj, False)
-
-    def predelete(self, name):
-        self._predelete.add(name)
-
-    def precreate(self, name, handle):
-        self._precreate[name] = handle
+        self.storage.hm.register(obj)
 
     def unwatch(self):
         self.storage.wm.unregister(self)
@@ -89,57 +80,27 @@ class FSDirObject(FSObject):
 
     def unregister_children(self):
         for c in self.children:
-            self.hm.unregister(c, False)
+            self.hm.unregister(c)
             c.unregister_children()
 
     def inotify(self, event):
         if event.mask & (flags.ATTRIB | flags.MODIFY):
             logger.debug('MODIFY: %s:%s %s' % (self.storage.name, self.path(), event.name))
-            # This one is simple. Just notify that the object changed. Note that gvfs-mtp ignores this anyway.
-            if event.name == '':
-                pass # we might need to handle this later
-            elif event.name in self._precreate:
-                pass
-            else:
-                self.storage.hm.eventcb(code='OBJECT_INFO_CHANGED', p1=self.children[event.name].handle)
 
         elif event.mask & (flags.CREATE):
             logger.debug('CREATE: %s:%s %s' % (self.storage.name, self.path(), event.name))
-            # This one is simple for files, but if a directory was created then objects may have been
-            # created inside it before we received this event, and therefore before we added an inotify
-            # watch to the new directory.
-            if event.name in self.children:
-                logger.debug('Received create event for an object we already know about: %s %s' % (self.path(), event.name))
-            else:
-                self.add_child(self.path() / event.name, True)
 
         elif event.mask & (flags.CLOSE_WRITE):
-            logger.debug('CLOWRIT: %s:%s %s' % (self.storage.name, self.path(), event.name))
-            # This one is simple for files, but if a directory was created then objects may have been
-            # created inside it before we received this event, and therefore before we added an inotify
-            # watch to the new directory.
-            if event.name in self._precreate:
-                del self._precreate[event.name]
+            logger.debug('CLOSE_WRITE: %s:%s %s' % (self.storage.name, self.path(), event.name))
 
         elif event.mask & (flags.DELETE):
             logger.debug('DELETE: %s:%s %s' % (self.storage.name, self.path(), event.name))
-            # If a directory is deleted it must have already been empty, so nothing fancy is needed here.
-            obj = self.children[event.name]
-            try:
-                self._predelete.remove(event.name)
-            except KeyError:
-                self.storage.hm.unregister(obj, True)
-            else:
-                self.storage.hm.unregister(obj, False)
-            del self.children[event.name]
 
         elif event.mask & (flags.MOVED_FROM):
             logger.debug('MOVED_FROM: %s:%s %s' % (self.storage.name, self.path(), event.name))
-            # TODO: Implement this
 
         elif event.mask & (flags.MOVED_TO):
             logger.debug('MOVED_TO: %s:%s %s' % (self.storage.name, self.path(), event.name))
-            # TODO: Implement this
 
         else:
             logger.warning('EVENT UNHANDLED: %s:%s %s' % (self.storage.name, self.path(), event.name))
@@ -165,6 +126,7 @@ class FSDirObject(FSObject):
             assert(c.parent == self)
             assert(hasattr(c, 'handle'))
             assert(self.storage.hm.objects[c.handle] == c)
+
         for p in self.path().iterdir():
             assert(p.name in self.children)
 
@@ -174,14 +136,14 @@ class FSRootObject(FSDirObject):
     def __init__(self, path, storage):
         self.storage = storage
         self._path = pathlib.Path(path)
-        super().__init__(self._path, None, self.storage, send_events=False)
+        super().__init__(self._path, None, self.storage)
 
     def path(self):
         return self._path
 
     def inotify(self, event):
         if event.mask & (flags.ATTRIB | flags.MODIFY) and event.name == '':
-            # run a cache verification
+            # run a cache verification, triggered by touching the root directory
             logger.warning('Cache verification started')
             self.verify()
             logger.warning('Cache verification finished')

@@ -8,10 +8,9 @@ from mtp.exceptions import MTPError
 
 class HandleManager(object):
 
-    def __init__(self, eventcb):
+    def __init__(self):
         self.counter = itertools.count(1)
         self.objects = {}
-        self.eventcb = eventcb
 
     def register(self, obj, send_event=True, handle=None):
         if handle is None:
@@ -25,8 +24,6 @@ class HandleManager(object):
                 logger.error('Object already has a handle but it is not known to this handle manager.')
         obj.handle = handle
         self.objects[handle] = obj
-        if send_event:
-            self.eventcb(code='OBJECT_ADDED', p1=obj.handle)
         return handle
 
     def unregister(self, obj, send_event=True):
@@ -39,8 +36,6 @@ class HandleManager(object):
             logger.error('Object %s has a handle but is not known to handle manager.' % (obj.path()))
         else:
             del obj.handle
-            if send_event:
-                self.eventcb(code='OBJECT_REMOVED', p1=handle)
 
     def reserve_handle(self):
         return next(self.counter)
