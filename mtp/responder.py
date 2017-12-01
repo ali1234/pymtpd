@@ -49,7 +49,7 @@ def sender(f):
         try:
             (data, params) = f(self, p)
         except MTPError as e:
-            self.senddata(p.code, p.tx_id, b'')
+            self.senddata(p.code, p.tx_id, io.BytesIO(b''))
             raise e
         else:
             self.senddata(p.code, p.tx_id, data)
@@ -101,18 +101,19 @@ class MTPResponder(object):
 
         self.loop.add_reader(self.wm, self.wm.dispatch)
 
-    def senddata(self, code, tx_id, data):
-        length = len(data)
-        bio = io.BytesIO(data)
-        mtpdata = MTPData.build(dict(length=length+12, code=code, tx_id=tx_id, data=data))
+    def senddata(self, code, tx_id, f):
+        f.seek(0, 2) # move the cursor to the end of the file
+        length = f.tell()
+        f.seek(0, 0) # move back to the beginning
+        mtpdata = MTPData.build(dict(length=length+12, code=code, tx_id=tx_id))
         self.inep.write(mtpdata)
         if length == 0:
             return
         while length >= 512: # TODO: this should be connection max packet size rather than 512
-            self.inep.write(bio.read(512))
+            self.inep.write(f.read(512))
             length -= 512
         if length >= 0: # geq because we need to send null sentinal packet iff len(data) is a multiple of 512
-            self.inep.write(bio.read(length))
+            self.inep.write(f.read(length))
 
     def receivedata(self, code, tx_id):
         buf = self.outep.read()
@@ -161,7 +162,7 @@ class MTPResponder(object):
                      'UNREPORTED_STATUS',
                  ], key=lambda e: EventCode.encoding[e])
                ))
-        return (data, ())
+        return (io.BytesIO(data), ())
 
     @operation
     def OPEN_SESSION(self, p):
@@ -184,14 +185,14 @@ class MTPResponder(object):
     @session
     def GET_STORAGE_IDS(self, p):
         data = DataType.formats['AUINT32'].build(list(self.sm.ids()))
-        return(data, ())
+        return (io.BytesIO(data), ())
 
     @operation
     @sender
     @session
     def GET_STORAGE_INFO(self, p):
         data = self.sm[p.p1].build()
-        return (data, ())
+        return (io.BytesIO(data), ())
 
     @operation
     @session
@@ -212,21 +213,21 @@ class MTPResponder(object):
             data = DataType.formats['AUINT32'].build(list(self.sm.handles(p.p1, p.p3)))
 
         logger.debug(' '.join(str(x) for x in ('Data:', *DataType.formats['AUINT32'].parse(data))))
-        return (data, ())
+        return (io.BytesIO(data), ())
 
     @operation
     @sender
     @session
     def GET_OBJECT_INFO(self, p):
         data = self.hm[p.p1].build()
-        return (data, ())
+        return (io.BytesIO(data), ())
 
     @operation
     @sender
     @session
     def GET_OBJECT(self, p):
         f = self.hm[p.p1].open(mode='rb')
-        return (f.read(), ())
+        return (f, ())
 
     @operation
     @session
@@ -260,32 +261,33 @@ class MTPResponder(object):
         handle = self.hm.reserve_handle()
         self.object_info = (parent, info, handle)
 
-    @operation
-    @receiver
-    @session
-    def SEND_OBJECT(self, p, data):
-        if self.object_info is None:
-            raise MTPError('NO_VALID_OBJECT_INFO')
-        (parent, info, handle) = self.object_info
-        parent.precreate(info.name, handle)
-        p = parent.path() / info.name
-        f = p.open('w')
-        f.write(data)
-        return ()
+#    @operation
+#    @filereceiver
+#    @session
+#    def SEND_OBJECT(self, p, f):
+#        if self.object_info is None:
+#            raise MTPError('NO_VALID_OBJECT_INFO')
+#        (parent, info, handle) = self.object_info
+#        p = parent.path() / info.name
+#        f = p.open('w')
+#        f.write(data)
+#        parent.add_child(p)
+#        self.object_info = None
+#        return ()
 
     @operation
     @sender
     @session
     def GET_DEVICE_PROP_DESC(self, p):
         data = self.properties[DevicePropertyCode.decoding[p.p1]].builddesc()
-        return (data, ())
+        return (io.BytesIO(data), ())
 
     @operation
     @sender
     @session
     def GET_DEVICE_PROP_VALUE(self, p):
         data = self.properties[DevicePropertyCode.decoding[p.p1]].build()
-        return (data, ())
+        return (io.BytesIO(data), ())
 
     @operation
     @receiver
@@ -310,7 +312,7 @@ class MTPResponder(object):
         f = self.hm[p.p1].open(mode='rb')
         f.seek(p.p2, 0)
         data = f.read(p.p3)
-        return (data, (len(data),))
+        return (io.BytesIO(data), (len(data),)) # todo - don't load into memory here
 
 
     def operations(self, code):
