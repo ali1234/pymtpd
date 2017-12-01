@@ -341,8 +341,11 @@ class MTPResponder(object):
             raise MTPError('OPERATION_NOT_SUPPORTED')
 
     def handleOneOperation(self):
-
-        buf = self.outep.read()
+        try:
+            buf = self.outep.read()
+        except IOError: # inquirer disconnected
+            self.session_id = None
+            return
         # TODO: parser can't handle short packets without p1-p5 args, so extend buffer with zeros.
         buf += b'\x00'*(32-len(buf))
         p = MTPOperation.parse(buf)

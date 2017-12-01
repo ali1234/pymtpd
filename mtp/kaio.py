@@ -86,8 +86,13 @@ class KAIOReader(KAIOFile):
         ret = io_getevents(self.ctx, 1, 1, ctypes.byref(e), None)
         if ret != 1 :
             raise Exception('This should never happen')
-        tmp = bytearray(e.res)
-        tmp[:] = bytes(self.buf[:e.res])
+
+        result = (int(e.res) - 2**64) if (e.res & 0x1000000000000000) else int(e.res)
+        print(result)
+        if result < 0:
+            raise IOError(-result)
+        tmp = bytearray(result)
+        tmp[:] = bytes(self.buf[:result])
         self.submit() # prime a new read operation
         return tmp
 
