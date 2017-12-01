@@ -343,8 +343,8 @@ class MTPResponder(object):
     def handleOneOperation(self):
         try:
             buf = self.outep.read()
-        except IOError: # inquirer disconnected
-            self.session_id = None
+        except IOError as e: # inquirer disconnected?
+            logger.error('IOError when reading: %d' % (e.args[0]))
             return
         # TODO: parser can't handle short packets without p1-p5 args, so extend buffer with zeros.
         buf += b'\x00'*(32-len(buf))
