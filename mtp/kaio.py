@@ -101,7 +101,7 @@ class KAIOWriter(KAIOFile):
     """Queues writes inside the kernel."""
 
     def __init__(self, file):
-        super().__init__(file, 128)
+        super().__init__(file, 12800)
 
     def write(self, buf):
         iocb_ = iocb()
