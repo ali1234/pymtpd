@@ -75,6 +75,7 @@ class MTPFunction(functionfs.Function):
         fs_list.append(INT_DESCRIPTOR)
 
         self.loop = asyncio.get_event_loop()
+        self.loop.set_exception_handler(self.exception)
 
         try:
             # If anything goes wrong from here on we MUST not
@@ -111,6 +112,10 @@ class MTPFunction(functionfs.Function):
             # and then re-raise.
             self.close()
             raise
+
+    def exception(self, loop, context):
+        loop.stop()
+        raise context['exception']
 
     def close(self):
         self.outep.close()
