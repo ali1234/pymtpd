@@ -88,7 +88,6 @@ class KAIOReader(KAIOFile):
             raise Exception('This should never happen')
 
         result = (int(e.res) - 2**64) if (e.res & 0x1000000000000000) else int(e.res)
-        print(result)
         if result < 0:
             raise IOError(-result)
         tmp = bytearray(result)
