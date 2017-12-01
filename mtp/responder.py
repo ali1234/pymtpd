@@ -106,7 +106,7 @@ class MTPResponder(object):
             self.eventqueue.append(kwargs)
 
     def sendevents(self):
-        if len(self.eventqueue) > 10:
+        if 0: #len(self.eventqueue) > 10:
             self.intep.write(MTPEvent.build(dict(code='UNREPORTED_STATUS')))
             logger.warning('Event spam detected, dropped queue, sent UNREPORTED_STATUS instead.')
         else:
