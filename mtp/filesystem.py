@@ -59,7 +59,7 @@ class FSDirObject(FSObject):
         super().__init__(path, parent, storage)
         self.children = {}
         self._predelete = set()
-        self._precreate = set()
+        self._precreate = dict()
         self.storage.wm.register(self)
 
         for fz in self.path().iterdir():
@@ -71,18 +71,16 @@ class FSDirObject(FSObject):
         else:
             obj = FSObject(path, self, self.storage)
         self.children[obj.name] = obj
-        try:
-            self._precreate.remove(obj.name)
-        except KeyError:
-            self.storage.hm.register(obj, send_events)
+        if obj.name in self._precreate:
+            self.storage.hm.register(obj, False, self._precreate[obj.name])
         else:
             self.storage.hm.register(obj, False)
 
     def predelete(self, name):
         self._predelete.add(name)
 
-    def precreate(self, name):
-        self._precreate.add(name)
+    def precreate(self, name, handle):
+        self._precreate[name] = handle
 
     def unwatch(self):
         self.storage.wm.unregister(self)
@@ -100,6 +98,8 @@ class FSDirObject(FSObject):
             # This one is simple. Just notify that the object changed. Note that gvfs-mtp ignores this anyway.
             if event.name == '':
                 pass # we might need to handle this later
+            elif event.name in self._precreate:
+                pass
             else:
                 self.storage.hm.eventcb(code='OBJECT_INFO_CHANGED', p1=self.children[event.name].handle)
 
@@ -112,6 +112,14 @@ class FSDirObject(FSObject):
                 logger.debug('Received create event for an object we already know about: %s %s' % (self.path(), event.name))
             else:
                 self.add_child(self.path() / event.name, True)
+
+        elif event.mask & (flags.CLOSE_WRITE):
+            logger.debug('CLOWRIT: %s:%s %s' % (self.storage.name, self.path(), event.name))
+            # This one is simple for files, but if a directory was created then objects may have been
+            # created inside it before we received this event, and therefore before we added an inotify
+            # watch to the new directory.
+            if event.name in self._precreate:
+                del self._precreate[event.name]
 
         elif event.mask & (flags.DELETE):
             logger.debug('DELETE: %s:%s %s' % (self.storage.name, self.path(), event.name))

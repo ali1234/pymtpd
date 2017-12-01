@@ -90,6 +90,8 @@ class MTPResponder(object):
             ('SYNCHRONIZATION_PARTNER', '', True),
         )
 
+        self.object_info = None
+
         self.eventqueue = []
         self.wm = WatchManager(self.sendevents)
         self.hm = HandleManager(self.queueevent)
@@ -276,9 +278,21 @@ class MTPResponder(object):
                 raise MTPError('INVALID_PARENT_OBJECT')
 
         info = ObjectInfo.parse(data)
-        # TODO: finish this...
+        handle = self.hm.reserve_handle()
+        self.object_info = (parent, info, handle)
 
-    #TODO: SEND_OBJECT
+    @operation
+    @receiver
+    @session
+    def SEND_OBJECT(self, p, data):
+        if self.object_info is None:
+            raise MTPError('NO_VALID_OBJECT_INFO')
+        (parent, info, handle) = self.object_info
+        parent.precreate(info.name, handle)
+        p = parent.path() / info.name
+        f = p.open('w')
+        f.write(data)
+        return ()
 
     @operation
     @sender

@@ -1,5 +1,5 @@
 from inotify_simple import INotify, flags
-IN_MASK = flags.ATTRIB | flags.CREATE | flags.DELETE | flags.MODIFY | flags.MOVED_TO | flags.MOVED_FROM | flags.IGNORED
+IN_MASK = flags.ATTRIB | flags.CREATE | flags.DELETE | flags.MODIFY | flags.MOVED_TO | flags.MOVED_FROM | flags.IGNORED | flags.CLOSE_WRITE
 
 import logging
 logger = logging.getLogger(__name__)
