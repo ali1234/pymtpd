@@ -27,7 +27,7 @@ class FSObject(object):
         pass
 
     def handles(self, recurse):
-        return ()
+        raise MTPError('INVALID_PARENT_HANDLE')
 
     def build(self):
         path = self.path()
@@ -148,7 +148,7 @@ class FSDirObject(FSObject):
 
     def handles(self, recurse=False):
         if recurse:
-            return itertools.chain(self.handles(False), *(c.handles(True) for c in self.children.values()))
+            return itertools.chain(self.handles(False), *(c.handles(True) for c in self.children.values() if isinstance(c, FSDirObject)))
         else:
             return (c.handle for c in self.children.values() if hasattr(c, 'handle'))
 
