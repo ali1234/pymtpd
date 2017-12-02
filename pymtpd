@@ -74,6 +74,12 @@ if __name__ == '__main__':
 
     import argparse
 
+    # TODO: command line options / config file for the following:
+    #  MTP device name
+    #  storage name/path (multiple times)
+    #  udc device
+    #  configfs dir
+
     parser = argparse.ArgumentParser(description='MTP Daemon.')
     parser.add_argument('--log-level', type=str, help='CRITICAL, ERROR, WARNING, INFO, DEBUG', default='WARN')
     args = parser.parse_args()
