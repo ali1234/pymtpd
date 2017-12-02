@@ -14,6 +14,7 @@ from mtp.watchmanager import WatchManager
 from mtp.handlemanager import HandleManager
 from mtp.storage import StorageManager, FilesystemStorage
 from mtp.object import ObjectInfo
+from mtp.partialfile import PartialFile
 
 
 operations = {}
@@ -310,9 +311,9 @@ class MTPResponder(object):
     @session
     def GET_PARTIAL_OBJECT(self, p):
         f = self.hm[p.p1].open(mode='rb')
-        f.seek(p.p2, 0)
-        data = f.read(p.p3)
-        return (io.BytesIO(data), (len(data),)) # todo - don't load into memory here
+        fp = PartialFile(f, p.p2, p.p3)
+        logger.warning('GET_PARTIAL_FILE')
+        return (fp, ()) # todo - don't load into memory here
 
 
     def operations(self, code):
