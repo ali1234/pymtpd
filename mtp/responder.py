@@ -30,6 +30,25 @@ def operation(f):
     operations[f.__name__] = f
     return f
 
+def filereceiver(f):
+    """Decorator for operations which receive data from the inquirer.
+
+    The data stage must run even if there is an error with the operation.
+    """
+    def receivefile(self, p):
+        try:
+            (dest, params) = f(self, p)
+        except MTPError as e:
+            self.receivefile(p.code, p.tx_id, open('/dev/null', 'wb'))
+            raise e
+        else:
+            self.receivefile(p.code, p.tx_id, dest)
+            print(params)
+            return params
+    # For compatibility with @operation we must mangle the name.
+    receivefile.__name__ = f.__name__
+    return receivefile
+
 def receiver(f):
     """Decorator for operations which receive data from the inquirer.
 
@@ -116,26 +135,34 @@ class MTPResponder(object):
         if length >= 0: # geq because we need to send null sentinal packet iff len(data) is a multiple of 512
             self.inep.write(f.read(length))
 
+
     def receivedata(self, code, tx_id):
+        bio = io.BytesIO()
+        self.receivefile(code, tx_id, bio)
+        data = bytes(bio.getbuffer())
+        return data
+
+    def receivefile(self, code, tx_id, f):
         buf = self.outep.read()
         mtpdata = MTPData.parse(buf)
         length = mtpdata.length-12
         if length == 0:
-            return b''
-        bio = io.BytesIO()
+            return
         while length >= 512: # TODO: this should be connection max packet size rather than 512
-            bio.write(self.outep.read(512))
+            buf = self.outep.read()
+            f.write(buf)
+            if len(buf) != 512:
+                raise MTPError('INCOMPLETE_TRANSFER')
             length -= 512
-        if length >= 0: # geq because we need to handle null sentinal packet iff len(data) is a multiple of 512
-            bio.write(self.outep.read(length))
-        data = bytes(bio.getbuffer())
+        if length >= 0: # geq because we need to send null sentinal packet iff len(data) is a multiple of 512
+            buf = self.outep.read()
+            if len(buf) != length:
+                raise MTPError('INCOMPLETE_TRANSFER')
+            f.write(buf)
         if mtpdata.code != code:
             raise MTPError('INVALID_DATASET')
         if mtpdata.tx_id != tx_id:
             raise MTPError('INVALID_TRANSACTION_ID')
-        if len(data) != mtpdata.length:
-            raise MTPError('INCOMPLETE_TRANSFER')
-        return data
 
     def respond(self, code, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
         args = locals()
@@ -259,22 +286,28 @@ class MTPResponder(object):
                 raise MTPError('INVALID_PARENT_OBJECT')
 
         info = ObjectInfo.parse(data)
+        if info.format == 'ASSOCIATION' and info.association_type == 'GENERIC_FOLDER':
+            parent.path().mkdir(info.name)
+            parent.add_child(parent.path() / info.filename)
         handle = self.hm.reserve_handle()
         self.object_info = (parent, info, handle)
+        return ()
 
-#    @operation
-#    @filereceiver
-#    @session
-#    def SEND_OBJECT(self, p, f):
-#        if self.object_info is None:
-#            raise MTPError('NO_VALID_OBJECT_INFO')
-#        (parent, info, handle) = self.object_info
-#        p = parent.path() / info.name
-#        f = p.open('w')
-#        f.write(data)
-#        parent.add_child(p)
-#        self.object_info = None
-#        return ()
+    @operation
+    @filereceiver
+    @session
+    def SEND_OBJECT(self, p):
+        if self.object_info is None:
+            raise MTPError('NO_VALID_OBJECT_INFO')
+        (parent, info, handle) = self.object_info
+        if info.format == 'ASSOCIATION' and info.association_type == 'GENERIC_FOLDER':
+            f = open('/dev/null', 'wb')
+        else:
+            p = parent.path() / info.filename
+            f = p.open('wb')
+            parent.add_child(p)
+        self.object_info = None
+        return (f, ())
 
     @operation
     @sender
