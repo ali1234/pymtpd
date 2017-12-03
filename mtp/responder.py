@@ -365,7 +365,8 @@ class MTPResponder(object):
         buf += b'\x00'*(32-len(buf))
         p = MTPOperation.parse(buf)
         logger.debug(' '.join(str(x) for x in ('Operation:', p.code, hex(p.p1), hex(p.p2), hex(p.p3), hex(p.p4), hex(p.p5))))
-
+        if p.code not in ['SEND_OBJECT']:
+            self.object_info = None
         try:
             self.respond('OK', p.tx_id, *self.operations(p.code)(self, p))
         except MTPError as e:
