@@ -55,6 +55,7 @@ data_types = [
 
 # MTP Format Codes
 format_types = [
+    ('UNDEFINED_OUTSIDE_SPEC',              0x0000),   # Quirky inquirers can send 0 for the format type.
     ('UNDEFINED',                           0x3000),   # Undefined object
     ('ASSOCIATION',                         0x3001),   # Association (for example, a folder)
     ('SCRIPT',                              0x3002),   # Device model-specific script
