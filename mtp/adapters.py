@@ -23,9 +23,15 @@ MTPString = SL(Term(PrefixedArray(Byte, Int16ul)))
 
 class DT(Adapter):
     def _encode(self, obj, ctx):
-        return obj.strftime('%Y%m%dT%H%M%SZ')
+        if obj == None:
+            return ''
+        else:
+            return obj.strftime('%Y%m%dT%H%M%SZ')
     def _decode(selfself, obj, ctx):
-        return datetime.datetime.strptime(obj, '%Y%m%dT%H%M%SZ')
+        if obj == '':
+            return None
+        else:
+            return datetime.datetime.strptime(obj, '%Y%m%dT%H%M%SZ')
 
 MTPDateTime = DT(MTPString)
 
