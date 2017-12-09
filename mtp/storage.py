@@ -92,11 +92,13 @@ class StorageManager(object):
         storage_id = next(self.counter)
         storage.storage_id = storage_id
         self.stores[storage_id] = storage
+        storage.id = storage_id
         if self.default_store == None:
             self.default_store = storage
 
     def unregister(self, storage):
         del self.stores[storage.storage_id]
+        del storage.id
         del storage.storage_id
 
     def ids(self):

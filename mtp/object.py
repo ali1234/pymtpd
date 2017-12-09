@@ -8,9 +8,14 @@ from construct import *
 import mtp.constants
 from mtp.exceptions import MTPError
 from mtp.adapters import MTPString, MTPDateTime
+from mtp.packets import DataType
 
 FormatType = Enum(Int16ul, **dict(mtp.constants.format_types))
-ObjectPropertyCode = Enum(Int16ul, **dict(mtp.constants.object_property_codes))
+
+ObjectPropertyCode = Enum(Int16ul, **{x[0]: x[1] for x in mtp.constants.object_property_codes})
+ObjectPropertyCode.consttypes = {x[0]: Const(DataType, x[2]) for x in mtp.constants.object_property_codes}
+ObjectPropertyCode.formats = {x[0]: DataType.formats[x[2]] for x in mtp.constants.object_property_codes}
+
 AssociationType = Enum(Int16ul, **dict(mtp.constants.association_types))
 
 
@@ -36,5 +41,19 @@ ObjectInfo = Struct(
     'keywords' / Default(MTPString, u''),
 )
 
+ObjectPropertyCodeArray = PrefixedArray(Int32ul, ObjectPropertyCode)
 
+ObjectPropertyDesc = Struct(
+    'code' / ObjectPropertyCode,
+    'type' / Switch(this.code, ObjectPropertyCode.consttypes),
+    'writable' / Default(Byte, True),
+    'default' / Switch(this.code, ObjectPropertyCode.formats),
+    'group' / Const(Int32ul, 0),
+    'form' / Const(Byte, 0),
+)
 
+def builddesc(prop):
+    if ObjectPropertyCode.formats[prop] == MTPString:
+        return ObjectPropertyDesc.build(dict(code=prop, default=''))
+    else:
+        return ObjectPropertyDesc.build(dict(code=prop, default=0))
