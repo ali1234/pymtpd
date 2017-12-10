@@ -14,7 +14,6 @@ from mtp.watchmanager import WatchManager
 from mtp.handlemanager import HandleManager
 from mtp.storage import StorageManager, FilesystemStorage
 from mtp.object import ObjectInfo, ObjectPropertyCode, ObjectPropertyCodeArray, ObjectPropertyDesc, builddesc
-from mtp.partialfile import PartialFile
 from mtp.registry import Registry
 
 class MTPResponder(object):
@@ -44,56 +43,6 @@ class MTPResponder(object):
         FilesystemStorage('Files', '/tmp/mtp', self.sm, self.hm, self.wm)
 
         self.loop.add_reader(self.wm, self.wm.dispatch)
-
-    def senddata(self, code, tx_id, f):
-        f.seek(0, 2) # move the cursor to the end of the file
-        length = f.tell()
-        f.seek(0, 0) # move back to the beginning
-        mtpdata = MTPData.build(dict(length=length+12, code=code, tx_id=tx_id))
-        self.inep.write(mtpdata)
-        if length == 0:
-            return
-        while length >= 512: # TODO: this should be connection max packet size rather than 512
-            self.inep.write(f.read(512))
-            length -= 512
-        if length >= 0: # geq because we need to send null sentinal packet iff len(data) is a multiple of 512
-            self.inep.write(f.read(length))
-
-
-    def receivedata(self, code, tx_id):
-        bio = io.BytesIO()
-        self.receivefile(code, tx_id, bio)
-        data = bytes(bio.getbuffer())
-        return data
-
-    def receivefile(self, code, tx_id, f):
-        buf = self.outep.read()
-        mtpdata = MTPData.parse(buf)
-        length = mtpdata.length-12
-        if length == 0:
-            return
-        while length >= 512: # TODO: this should be connection max packet size rather than 512
-            buf = self.outep.read()
-            f.write(buf)
-            if len(buf) != 512:
-                raise MTPError('INCOMPLETE_TRANSFER')
-            length -= 512
-        if length >= 0: # geq because we need to send null sentinal packet iff len(data) is a multiple of 512
-            buf = self.outep.read()
-            if len(buf) != length:
-                raise MTPError('INCOMPLETE_TRANSFER')
-            f.write(buf)
-        if mtpdata.code != code:
-            raise MTPError('INVALID_DATASET')
-        if mtpdata.tx_id != tx_id:
-            raise MTPError('INVALID_TRANSACTION_ID')
-
-    def respond(self, code, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
-        args = locals()
-        del args['self']
-        logger.debug(' '.join(str(x) for x in ('Response:', args['code'], args['p1'], args['p2'], args['p3'], args['p4'], args['p5'])))
-        self.inep.write(MTPResponse.build(args))
-
 
     @operations.sender
     def GET_DEVICE_INFO(self, p):
@@ -317,6 +266,11 @@ class MTPResponder(object):
 #    def SET_OBJECT_REFERENCES(self, p, value):
 #        return ()
 
+    def respond(self, code, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
+        args = locals()
+        del args['self']
+        logger.debug(' '.join(str(x) for x in ('Response:', args['code'], args['p1'], args['p2'], args['p3'], args['p4'], args['p5'])))
+        self.inep.write(MTPResponse.build(args))
 
     def handleOneOperation(self):
         try:

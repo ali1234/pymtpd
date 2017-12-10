@@ -1,4 +1,7 @@
+import io
+
 from mtp.exceptions import MTPError
+from mtp.packets import indata, outdata
 
 class Registry(object):
     def __init__(self):
@@ -50,11 +53,10 @@ class Registry(object):
                 try:
                     (dest, params) = fn(self, p)
                 except MTPError as e:
-                    self.receivefile(p.code, p.tx_id, open('/dev/null', 'wb'))
+                    outdata(self.outep, p.code, p.tx_id, open('/dev/null', 'wb'))
                     raise e
                 else:
-                    self.receivefile(p.code, p.tx_id, dest)
-                    print(params)
+                    outdata(self.outep, p.code, p.tx_id, dest)
                     return params
 
         self.register(receivefile, fn.__name__)
@@ -70,7 +72,9 @@ class Registry(object):
             if self.session_id is None:
                 raise MTPError('SESSION_NOT_OPEN')
             else:
-                return fn(self, p, self.receivedata(p.code, p.tx_id))
+                bio = io.BytesIO()
+                outdata(self.outep, p.code, p.tx_id, bio)
+                return fn(self, p, bytes(bio.getbuffer()))
 
         # For compatibility with @operation we must mangle the name.
         self.register(receivedata, fn.__name__)
@@ -89,10 +93,10 @@ class Registry(object):
                 try:
                     (data, params) = fn(self, p)
                 except MTPError as e:
-                    self.senddata(p.code, p.tx_id, io.BytesIO(b''))
+                    indata(self.inep, p.code, p.tx_id, io.BytesIO(b''))
                     raise e
                 else:
-                    self.senddata(p.code, p.tx_id, data)
+                    indata(self.inep, p.code, p.tx_id, data)
                     return params
 
         # For compatibility with @operation we must mangle the name.

@@ -41,7 +41,7 @@ class FSObject(object):
         os.ftruncate(self.path(), offset)
 
     def partial_file(self, offset, length):
-        f = self.path.open('rwb')
+        f = self.path().open('r+b')
         return PartialFile(f, offset, length)
 
     def handles(self, recurse):

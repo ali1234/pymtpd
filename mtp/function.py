@@ -100,6 +100,9 @@ class MTPFunction(functionfs.Function):
             self.outep = KAIOReader(self._ep_list[2])
             self.intep = KAIOWriter(self._ep_list[3])
 
+            self.outep.maxpkt = 512
+            self.inep.maxpkt = 512
+
             self.responder = MTPResponder(
                 outep=self.outep,
                 inep=self.inep,
