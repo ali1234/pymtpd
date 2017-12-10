@@ -343,30 +343,28 @@ class MTPResponder(object):
     @sender
     @session
     def GET_PARTIAL_OBJECT(self, p):
-        f = self.hm[p.p1].open(mode='rb')
-        fp = PartialFile(f, p.p2, p.p3)
-        return (fp, ())
+        fp = self.hm[p.p1].partial_file(p.p2, p.p3)
+        return (fp, (fp.length,))
 
     @operation
     @sender
     @session
     def GET_PARTIAL_OBJECT_64(self, p):
-        f = self.hm[p.p1].open(mode='rb')
-        fp = PartialFile(f, p.p2 | (p.p3<<32), p.p4)
-        return (fp, ())
+        fp = self.hm[p.p1].partial_file(p.p2 | (p.p3<<32), p.p4)
+        return (fp, (fp.length,))
 
     @operation
     @filereceiver
     @session
     def SEND_PARTIAL_OBJECT(self, p):
-        f = self.hm[p.p1].open(mode='wb')
-        fp = PartialFile(f, p.p2 | (p.p3<<32), p.p4)
+        fp = self.hm[p.p1].partial_file(p.p2 | (p.p3 << 32), p.p4)
         return (fp, ())
 
-#    @operation
-#    @session
-#    def TRUNCATE_OBJECT(self, p):
-#        return ()
+    @operation
+    @session
+    def TRUNCATE_OBJECT(self, p):
+        self.hm[p.p1].truncate(p.p2 | (p.p3 << 32))
+        return ()
 
     @operation
     @session
@@ -378,51 +376,51 @@ class MTPResponder(object):
     def END_EDIT_OBJECT(self, p):
         return ()
 
-    @operation
-    @sender
-    @session
-    def GET_OBJECT_PROPS_SUPPORTED(self, p):
-        logger.warning('format {}'.format(hex(p.p1)))
-        data = ObjectPropertyCodeArray.build(['STORAGE_ID', 'OBJECT_FORMAT', 'PROTECTION_STATUS', 'OBJECT_SIZE', 'OBJECT_FILE_NAME', 'DATE_MODIFIED', 'PARENT_OBJECT', 'NAME'])
-        return (io.BytesIO(data), ())
+#    @operation
+#    @sender
+#    @session
+#    def GET_OBJECT_PROPS_SUPPORTED(self, p):
+#        logger.warning('format {}'.format(hex(p.p1)))
+#        data = ObjectPropertyCodeArray.build(['STORAGE_ID', 'OBJECT_FORMAT', 'PROTECTION_STATUS', 'OBJECT_SIZE', 'OBJECT_FILE_NAME', 'DATE_MODIFIED', 'PARENT_OBJECT', 'NAME'])
+#        return (io.BytesIO(data), ())
 
-    @operation
-    @sender
-    @session
-    def GET_OBJECT_PROP_DESC(self, p):
-        data = builddesc(ObjectPropertyCode.decoding[p.p1])
-        return (io.BytesIO(data), ())
+#    @operation
+#    @sender
+#    @session
+#    def GET_OBJECT_PROP_DESC(self, p):
+#        data = builddesc(ObjectPropertyCode.decoding[p.p1])
+#        return (io.BytesIO(data), ())
 
-    @operation
-    @sender
-    @session
-    def GET_OBJECT_PROP_VALUE(self, p):
-        obj = self.hm[p.p1]
-        code = ObjectPropertyCode.decoding[p.p2]
-        if code == 'STORAGE_ID':
-            data = obj.storage.id
-        elif code == 'OBJECT_FORMAT':
-            data = 0x3001 if obj.path().is_dir() else 0x3000
-        elif code == 'PROTECTION_STATUS':
-            data = 0
-        elif code == 'OBJECT_SIZE':
-            data = obj.path().stat().st_size
-        elif code == 'OBJECT_FILE_NAME' or code == 'NAME':
-            data = 'asd'
-        elif code == 'DATE_MODIFIED':
-            data = ''
-        elif code == 'PARENT_OBJECT':
-            data = obj.parent.handle
-        else:
-            raise MTPError(code='INVALID_OBJECT_PROP_CODE')
-        data = ObjectPropertyCode.formats[code].build(data)
-        return (io.BytesIO(data), ())
+#    @operation
+#    @sender
+#    @session
+#    def GET_OBJECT_PROP_VALUE(self, p):
+#        obj = self.hm[p.p1]
+#        code = ObjectPropertyCode.decoding[p.p2]
+#        if code == 'STORAGE_ID':
+#            data = obj.storage.id
+#        elif code == 'OBJECT_FORMAT':
+#            data = 0x3001 if obj.path().is_dir() else 0x3000
+#        elif code == 'PROTECTION_STATUS':
+#            data = 0
+#        elif code == 'OBJECT_SIZE':
+#            data = obj.path().stat().st_size
+#        elif code == 'OBJECT_FILE_NAME' or code == 'NAME':
+#            data = 'asd'
+#        elif code == 'DATE_MODIFIED':
+#            data = ''
+#        elif code == 'PARENT_OBJECT':
+#            data = obj.parent.handle
+#        else:
+#            raise MTPError(code='INVALID_OBJECT_PROP_CODE')
+#        data = ObjectPropertyCode.formats[code].build(data)
+#        return (io.BytesIO(data), ())
 
-    @operation
-    @receiver
-    @session
-    def SET_OBJECT_PROP_VALUE(self, p, value):
-        return ()
+#    @operation
+#    @receiver
+#    @session
+#    def SET_OBJECT_PROP_VALUE(self, p, value):
+#        return ()
 
 #    @operation
 #    @sender

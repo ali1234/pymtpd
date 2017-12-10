@@ -1,4 +1,5 @@
 import pathlib
+import os
 import itertools
 import datetime
 
@@ -8,6 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from mtp.object import ObjectInfo
+from mtp.partialfile import PartialFile
 
 
 class FSObject(object):
@@ -34,6 +36,13 @@ class FSObject(object):
         else:
             self.path().unlink()
         del self.parent.children[self.name]
+
+    def truncate(self, offset):
+        os.ftruncate(self.path(), offset)
+
+    def partial_file(self, offset, length):
+        f = self.path.open('rwb')
+        return PartialFile(f, offset, length)
 
     def handles(self, recurse):
         raise MTPError('INVALID_PARENT_HANDLE')
@@ -91,6 +100,12 @@ class FSDirObject(FSObject):
         for c in self.children:
             self.hm.unregister(c)
             c.unregister_children()
+
+    def truncate(self, offset):
+        raise MTPError('INVALID_OBJECT_HANDLE') # TODO: is this the right error?
+
+    def partial_file(self, offset, length):
+        raise MTPError('INVALID_OBJECT_HANDLE')  # TODO: is this the right error?
 
     def inotify(self, event):
         if event.mask & (flags.ATTRIB | flags.MODIFY):

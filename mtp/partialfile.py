@@ -2,10 +2,11 @@ class PartialFile(object):
 
     def __init__(self, file, offset, length):
         self.file = file
-        self.offset = offset
-        self.length = length
-        self.file.seek(offset+length, 0)
-        self.file.seek(0, 0)
+        self.file.seek(offset, 0)
+        self.offset = self.file.tell()
+        self.file.seek(self.offset+length, 0)
+        self.length = self.tell()
+        self.file.seek(self.offset, 0)
 
     def read(self, n=-1):
         return self.file.read(n)
