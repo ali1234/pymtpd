@@ -38,7 +38,7 @@ class FSObject(object):
         del self.parent.children[self.name]
 
     def truncate(self, offset):
-        os.ftruncate(self.path(), offset)
+        self.path().open('r+b').truncate(offset)
 
     def partial_file(self, offset, length):
         f = self.path().open('r+b')
