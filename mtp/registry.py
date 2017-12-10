@@ -37,7 +37,6 @@ class Registry(object):
             else:
                 return fn(self, *args)
 
-        # For compatibility with @operation we must mangle the name.
         self.register(check_session, fn.__name__)
         return check_session
 
@@ -76,7 +75,6 @@ class Registry(object):
                 outdata(self.outep, p.code, p.tx_id, bio)
                 return fn(self, p, bytes(bio.getbuffer()))
 
-        # For compatibility with @operation we must mangle the name.
         self.register(receivedata, fn.__name__)
         return receivedata
 
@@ -99,7 +97,6 @@ class Registry(object):
                     indata(self.inep, p.code, p.tx_id, data)
                     return params
 
-        # For compatibility with @operation we must mangle the name.
         self.register(senddata, fn.__name__)
         return senddata
 
