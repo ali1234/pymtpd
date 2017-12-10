@@ -15,86 +15,10 @@ from mtp.handlemanager import HandleManager
 from mtp.storage import StorageManager, FilesystemStorage
 from mtp.object import ObjectInfo, ObjectPropertyCode, ObjectPropertyCodeArray, ObjectPropertyDesc, builddesc
 from mtp.partialfile import PartialFile
-
-
-operations = {}
-
-def operation(f):
-    """Add any function with this decorator to operations map.
-
-    The map is used when parsing operation packets, which have
-    a string for the operation. Thus, to handle an operation
-    packet, simply create a function with the appropriate name
-    and add this decorator.
-    """
-    operations[f.__name__] = f
-    return f
-
-def filereceiver(f):
-    """Decorator for operations which receive data from the inquirer.
-
-    The data stage must run even if there is an error with the operation.
-    """
-    def receivefile(self, p):
-        try:
-            (dest, params) = f(self, p)
-        except MTPError as e:
-            self.receivefile(p.code, p.tx_id, open('/dev/null', 'wb'))
-            raise e
-        else:
-            self.receivefile(p.code, p.tx_id, dest)
-            print(params)
-            return params
-    # For compatibility with @operation we must mangle the name.
-    receivefile.__name__ = f.__name__
-    return receivefile
-
-def receiver(f):
-    """Decorator for operations which receive data from the inquirer.
-
-    The data stage must run even if there is an error with the operation.
-    """
-    def receivedata(self, p):
-        return f(self, p, self.receivedata(p.code, p.tx_id))
-    # For compatibility with @operation we must mangle the name.
-    receivedata.__name__ = f.__name__
-    return receivedata
-
-def sender(f):
-    """Decorator for operations which send data to the inquirer.
-
-    The data stage must run even if there is an error with the operation.
-    """
-    def senddata(self, p):
-        try:
-            (data, params) = f(self, p)
-        except MTPError as e:
-            self.senddata(p.code, p.tx_id, io.BytesIO(b''))
-            raise e
-        else:
-            self.senddata(p.code, p.tx_id, data)
-            return params
-    # For compatibility with @operation we must mangle the name.
-    senddata.__name__ = f.__name__
-    return senddata
-
-def session(f):
-    """Decorator for operations which require a session to be open.
-
-    Returns a SESSION_NOT_OPEN response if no session is open,
-    otherwise it calls the handler.
-    """
-    def check_session(self, *args):
-        if self.session_id is None:
-            raise MTPError('SESSION_NOT_OPEN')
-        else:
-            return f(self, *args)
-    # For compatibility with @operation we must mangle the name.
-    check_session.__name__ = f.__name__
-    return check_session
-
+from mtp.registry import Registry
 
 class MTPResponder(object):
+    operations = Registry()
 
     def __init__(self, outep, inep, intep, loop):
         self.outep = outep
@@ -171,12 +95,11 @@ class MTPResponder(object):
         self.inep.write(MTPResponse.build(args))
 
 
-    @operation
-    @sender
+    @operations.sender
     def GET_DEVICE_INFO(self, p):
         data = DeviceInfo.build(dict(
                  device_properties_supported=self.properties.supported(),
-                 operations_supported=sorted(operations.keys(), key=lambda o: OperationCode.encoding[o]),
+                 operations_supported=sorted(self.operations.keys(), key=lambda o: OperationCode.encoding[o]),
                  events_supported=sorted([
                      'OBJECT_ADDED',
                      'OBJECT_REMOVED',
@@ -192,7 +115,7 @@ class MTPResponder(object):
                ))
         return (io.BytesIO(data), ())
 
-    @operation
+    @operations
     def OPEN_SESSION(self, p):
         if self.session_id is not None:
             raise MTPError('SESSION_ALREADY_OPEN', (self.session_id,))
@@ -201,29 +124,23 @@ class MTPResponder(object):
         logger.info('Session opened.')
         return (self.session_id,)
 
-    @operation
-    @session
+    @operations.session
     def CLOSE_SESSION(self, p):
         self.session_id = None
         logger.info('Session closed.')
         return ()
 
-    @operation
-    @sender
-    @session
+    @operations.sender
     def GET_STORAGE_IDS(self, p):
         data = DataType.formats['AUINT32'].build(list(self.sm.ids()))
         return (io.BytesIO(data), ())
 
-    @operation
-    @sender
-    @session
+    @operations.sender
     def GET_STORAGE_INFO(self, p):
         data = self.sm[p.p1].build()
         return (io.BytesIO(data), ())
 
-    @operation
-    @session
+    @operations.session
     def GET_NUM_OBJECTS(self, p):
         if p.p2 != 0:
             raise MTPError('SPECIFICATION_BY_FORMAT_UNSUPPORTED')
@@ -231,9 +148,7 @@ class MTPResponder(object):
             num = len(self.sm.handles(p.p1, p.p3))
         return (num, )
 
-    @operation
-    @sender
-    @session
+    @operations.sender
     def GET_OBJECT_HANDLES(self, p):
         if p.p2 != 0:
             raise MTPError('SPECIFICATION_BY_FORMAT_UNSUPPORTED')
@@ -243,29 +158,22 @@ class MTPResponder(object):
         logger.debug(' '.join(str(x) for x in ('Data:', *DataType.formats['AUINT32'].parse(data))))
         return (io.BytesIO(data), ())
 
-    @operation
-    @sender
-    @session
+    @operations.sender
     def GET_OBJECT_INFO(self, p):
         data = self.hm[p.p1].build()
         return (io.BytesIO(data), ())
 
-    @operation
-    @sender
-    @session
+    @operations.sender
     def GET_OBJECT(self, p):
         f = self.hm[p.p1].open(mode='rb')
         return (f, ())
 
-    @operation
-    @session
+    @operations.session
     def DELETE_OBJECT(self, p):
         self.hm[p.p1].delete()
         return ()
 
-    @operation
-    @receiver
-    @session
+    @operations.receiver
     def SEND_OBJECT_INFO(self, p, data):
         if p.p1 == 0:
             if p.p2 != 0:
@@ -293,9 +201,7 @@ class MTPResponder(object):
         self.object_info = (parent, info, handle)
         return ()
 
-    @operation
-    @filereceiver
-    @session
+    @operations.filereceiver
     def SEND_OBJECT(self, p):
         if self.object_info is None:
             raise MTPError('NO_VALID_OBJECT_INFO')
@@ -309,29 +215,22 @@ class MTPResponder(object):
         self.object_info = None
         return (f, ())
 
-    @operation
-    @sender
-    @session
+    @operations.sender
     def GET_DEVICE_PROP_DESC(self, p):
         data = self.properties[DevicePropertyCode.decoding[p.p1]].builddesc()
         return (io.BytesIO(data), ())
 
-    @operation
-    @sender
-    @session
+    @operations.sender
     def GET_DEVICE_PROP_VALUE(self, p):
         data = self.properties[DevicePropertyCode.decoding[p.p1]].build()
         return (io.BytesIO(data), ())
 
-    @operation
-    @receiver
-    @session
+    @operations.receiver
     def SET_DEVICE_PROP_VALUE(self, p, data):
         self.properties[DevicePropertyCode.decoding[p.p1]].parse(data)
         return ()
 
-    @operation
-    @session
+    @operations.session
     def RESET_DEVICE_PROP_VALUE(self, p):
         if p.p1 == 0xffffffff:
             self.properties.reset()
@@ -339,61 +238,46 @@ class MTPResponder(object):
             self.properties[DevicePropertyCode.decoding[p.p1]].reset()
         return ()
 
-    @operation
-    @sender
-    @session
+    @operations.sender
     def GET_PARTIAL_OBJECT(self, p):
         fp = self.hm[p.p1].partial_file(p.p2, p.p3)
         return (fp, (fp.length,))
 
-    @operation
-    @sender
-    @session
+    @operations.sender
     def GET_PARTIAL_OBJECT_64(self, p):
         fp = self.hm[p.p1].partial_file(p.p2 | (p.p3<<32), p.p4)
         return (fp, (fp.length,))
 
-    @operation
-    @filereceiver
-    @session
+    @operations.filereceiver
     def SEND_PARTIAL_OBJECT(self, p):
         fp = self.hm[p.p1].partial_file(p.p2 | (p.p3 << 32), p.p4)
         return (fp, ())
 
-    @operation
-    @session
+    @operations.session
     def TRUNCATE_OBJECT(self, p):
         self.hm[p.p1].truncate(p.p2 | (p.p3 << 32))
         return ()
 
-    @operation
-    @session
+    @operations.session
     def BEGIN_EDIT_OBJECT(self, p):
         return ()
 
-    @operation
-    @session
+    @operations.session
     def END_EDIT_OBJECT(self, p):
         return ()
 
-#    @operation
-#    @sender
-#    @session
+#    @operations.sender
 #    def GET_OBJECT_PROPS_SUPPORTED(self, p):
 #        logger.warning('format {}'.format(hex(p.p1)))
 #        data = ObjectPropertyCodeArray.build(['STORAGE_ID', 'OBJECT_FORMAT', 'PROTECTION_STATUS', 'OBJECT_SIZE', 'OBJECT_FILE_NAME', 'DATE_MODIFIED', 'PARENT_OBJECT', 'NAME'])
 #        return (io.BytesIO(data), ())
 
-#    @operation
-#    @sender
-#    @session
+#    @operations.sender
 #    def GET_OBJECT_PROP_DESC(self, p):
 #        data = builddesc(ObjectPropertyCode.decoding[p.p1])
 #        return (io.BytesIO(data), ())
 
-#    @operation
-#    @sender
-#    @session
+#    @operations.sender
 #    def GET_OBJECT_PROP_VALUE(self, p):
 #        obj = self.hm[p.p1]
 #        code = ObjectPropertyCode.decoding[p.p2]
@@ -416,36 +300,23 @@ class MTPResponder(object):
 #        data = ObjectPropertyCode.formats[code].build(data)
 #        return (io.BytesIO(data), ())
 
-#    @operation
-#    @receiver
-#    @session
+#    @operations.receiver
 #    def SET_OBJECT_PROP_VALUE(self, p, value):
 #        return ()
 
-#    @operation
-#    @sender
+#    @operations.sender
 #    def GET_OBJECT_PROP_LIST(self, p):
 #        data = DataType.formats['AUINT32'].build([])
 #        return (io.BytesIO(data), ())
 
-#    @operation
-#    @sender
-#    @session
+#    @operations.sender
 #    def GET_OBJECT_REFERENCES(self, p):
 #        return (io.BytesIO(b''), ())
 
-#    @operation
-#    @receiver
-#    @session
+#    @operations.receiver
 #    def SET_OBJECT_REFERENCES(self, p, value):
 #        return ()
 
-
-    def operations(self, code):
-        try:
-            return operations[code]
-        except KeyError:
-            raise MTPError('OPERATION_NOT_SUPPORTED')
 
     def handleOneOperation(self):
         try:
@@ -461,7 +332,7 @@ class MTPResponder(object):
         if p.code not in ['SEND_OBJECT']:
             self.object_info = None
         try:
-            self.respond('OK', p.tx_id, *self.operations(p.code)(self, p))
+            self.respond('OK', p.tx_id, *self.operations[p.code](self, p))
         except MTPError as e:
             logger.warning(' '.join(str(x) for x in ('Operation:', p.code, hex(p.p1), hex(p.p2), hex(p.p3), hex(p.p4), hex(p.p5))))
             logger.warning(' '.join(str(x) for x in ('MTPError:', e)))
