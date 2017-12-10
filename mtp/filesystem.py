@@ -1,5 +1,5 @@
 import pathlib
-import os
+import shutil
 import itertools
 import datetime
 
@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 from mtp.object import ObjectInfo
 from mtp.partialfile import PartialFile
+from mtp.exceptions import MTPError
 
 
 class FSObject(object):

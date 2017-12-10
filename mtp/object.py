@@ -1,4 +1,4 @@
-import itertools, datetime
+import datetime
 
 import logging
 logger = logging.getLogger(__name__)
@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 from construct import *
 
 import mtp.constants
-from mtp.exceptions import MTPError
 from mtp.adapters import MTPString, MTPDateTime
 from mtp.packets import DataType
 
