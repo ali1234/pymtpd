@@ -8,8 +8,11 @@ class PartialFile(object):
         self.length = self.tell()
         self.file.seek(self.offset, 0)
 
-    def read(self, n=-1):
-        return self.file.read(n)
+    def read(self, *args):
+        return self.file.read(*args)
+
+    def write(self, *args):
+        return self.file.write(*args)
 
     def seek(self, offset, whence):
         if offset > self.length:
