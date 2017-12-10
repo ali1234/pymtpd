@@ -13,9 +13,9 @@ DevicePropertyCode.formats = {x[0]: DataType.formats[x[2]] for x in constants.de
 
 DeviceInfo = Struct(
     'standard_version' / Const(Int16ul, constants.VERSION),
-    'vendor_extension_id' / Const(Int32ul, 0xffffffff),
+    'vendor_extension_id' / Const(Int32ul, 0x00000006),
     'version' / Default(Int16ul, 0),
-    'extensions' / Default(MTPString, ''),
+    'extensions' / Default(MTPString, 'microsoft.com: 1.0; android.com: 1.0;'),
     'functional_mode' / Default(Int16ul, 0),
     'operations_supported' / Default(PrefixedArray(Int32ul, OperationCode), []),
     'events_supported' / Default(PrefixedArray(Int32ul, EventCode), []),
