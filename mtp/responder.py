@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 from mtp.exceptions import MTPError
 from mtp.device import DeviceInfo, DeviceProperties, DevicePropertyCode
-from mtp.packets import MTPOperation, MTPResponse, MTPData, MTPEvent, DataType, OperationCode, EventCode
+from mtp.packets import MTPOperation, MTPResponse, DataFormats, OperationCode, EventCode
 from mtp.watchmanager import WatchManager
 from mtp.handlemanager import HandleManager
 from mtp.storage import StorageManager, FilesystemStorage
@@ -44,7 +44,7 @@ class MTPResponder(object):
     def GET_DEVICE_INFO(self, p):
         data = DeviceInfo.build(dict(
                  device_properties_supported=self.properties.supported(),
-                 operations_supported=sorted(self.operations.keys(), key=lambda o: OperationCode.encoding[o]),
+                 operations_supported=sorted(self.operations.keys(), key=lambda o: OperationCode.encmapping[o]),
                  events_supported=sorted([
                      'OBJECT_ADDED',
                      'OBJECT_REMOVED',
@@ -56,7 +56,7 @@ class MTPResponder(object):
                      'DEVICE_INFO_CHANGED',
                      'DEVICE_RESET',
                      'UNREPORTED_STATUS',
-                 ], key=lambda e: EventCode.encoding[e])
+                 ], key=lambda e: EventCode.encmapping[e])
                ))
         return (io.BytesIO(data), ())
 
@@ -77,7 +77,7 @@ class MTPResponder(object):
 
     @operations.sender
     def GET_STORAGE_IDS(self, p):
-        data = DataType.formats['AUINT32'].build(list(self.sm.ids()))
+        data = DataFormats['AUINT32'].build(list(self.sm.ids()))
         return (io.BytesIO(data), ())
 
     @operations.sender
@@ -98,9 +98,9 @@ class MTPResponder(object):
         if p.p2 != 0:
             raise MTPError('SPECIFICATION_BY_FORMAT_UNSUPPORTED')
         else:
-            data = DataType.formats['AUINT32'].build(list(self.sm.handles(p.p1, p.p3)))
+            data = DataFormats['AUINT32'].build(list(self.sm.handles(p.p1, p.p3)))
 
-        logger.debug(' '.join(str(x) for x in ('Data:', *DataType.formats['AUINT32'].parse(data))))
+        logger.debug(' '.join(str(x) for x in ('Data:', *DataFormats['AUINT32'].parse(data))))
         return (io.BytesIO(data), ())
 
     @operations.sender
@@ -162,17 +162,17 @@ class MTPResponder(object):
 
     @operations.sender
     def GET_DEVICE_PROP_DESC(self, p):
-        data = self.properties[DevicePropertyCode.decoding[p.p1]].builddesc()
+        data = self.properties[DevicePropertyCode.decmapping[p.p1]].builddesc()
         return (io.BytesIO(data), ())
 
     @operations.sender
     def GET_DEVICE_PROP_VALUE(self, p):
-        data = self.properties[DevicePropertyCode.decoding[p.p1]].build()
+        data = self.properties[DevicePropertyCode.decmapping[p.p1]].build()
         return (io.BytesIO(data), ())
 
     @operations.receiver
     def SET_DEVICE_PROP_VALUE(self, p, data):
-        self.properties[DevicePropertyCode.decoding[p.p1]].parse(data)
+        self.properties[DevicePropertyCode.decmapping[p.p1]].parse(data)
         return ()
 
     @operations.session
@@ -180,7 +180,7 @@ class MTPResponder(object):
         if p.p1 == 0xffffffff:
             self.properties.reset()
         else:
-            self.properties[DevicePropertyCode.decoding[p.p1]].reset()
+            self.properties[DevicePropertyCode.decmapping[p.p1]].reset()
         return ()
 
     @operations.sender
@@ -219,13 +219,13 @@ class MTPResponder(object):
 
 #    @operations.sender
 #    def GET_OBJECT_PROP_DESC(self, p):
-#        data = builddesc(ObjectPropertyCode.decoding[p.p1])
+#        data = builddesc(ObjectPropertyCode.decmapping[p.p1])
 #        return (io.BytesIO(data), ())
 
 #    @operations.sender
 #    def GET_OBJECT_PROP_VALUE(self, p):
 #        obj = self.hm[p.p1]
-#        code = ObjectPropertyCode.decoding[p.p2]
+#        code = ObjectPropertyCode.decmapping[p.p2]
 #        if code == 'STORAGE_ID':
 #            data = obj.storage.id
 #        elif code == 'OBJECT_FORMAT':
@@ -242,7 +242,7 @@ class MTPResponder(object):
 #            data = obj.parent.handle
 #        else:
 #            raise MTPError(code='INVALID_OBJECT_PROP_CODE')
-#        data = ObjectPropertyCode.formats[code].build(data)
+#        data = ObjectPropertyFormats[code].build(data)
 #        return (io.BytesIO(data), ())
 
 #    @operations.receiver
@@ -251,7 +251,7 @@ class MTPResponder(object):
 
 #    @operations.sender
 #    def GET_OBJECT_PROP_LIST(self, p):
-#        data = DataType.formats['AUINT32'].build([])
+#        data = DataFormats['AUINT32'].build([])
 #        return (io.BytesIO(data), ())
 
 #    @operations.sender

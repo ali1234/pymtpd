@@ -2,14 +2,14 @@ from construct import *
 
 from mtp import constants
 from mtp.exceptions import MTPError
-from mtp.packets import EventCode, OperationCode, DataType
+from mtp.packets import EventCode, OperationCode, DataType, DataFormats
 from mtp.object import FormatType
 from mtp.adapters import MTPString
 
 
 DevicePropertyCode = Enum(Int16ul, **{x[0]: x[1] for x in constants.device_property_codes})
-DevicePropertyCode.consttypes = {x[0]: Const(DataType, x[2]) for x in constants.device_property_codes}
-DevicePropertyCode.formats = {x[0]: DataType.formats[x[2]] for x in constants.device_property_codes}
+DevicePropertyTypes = {x[0]: Const(DataType, x[2]) for x in constants.device_property_codes}
+DevicePropertyFormats = {x[0]: DataFormats[x[2]] for x in constants.device_property_codes}
 
 DeviceInfo = Struct(
     'standard_version' / Const(Int16ul, constants.VERSION),
@@ -30,10 +30,10 @@ DeviceInfo = Struct(
 
 DevicePropertyDesc = Struct(
     'code' / DevicePropertyCode,
-    'type' / Switch(this.code, DevicePropertyCode.consttypes),
+    'type' / Switch(this.code, DevicePropertyTypes),
     'writable' / Default(Byte, False),
-    'default' / Switch(this.code, DevicePropertyCode.formats),
-    'current' / Switch(this.code, DevicePropertyCode.formats),
+    'default' / Switch(this.code, DevicePropertyFormats),
+    'current' / Switch(this.code, DevicePropertyFormats),
     'form' / Const(Byte, 0),
 )
 
@@ -57,10 +57,10 @@ class DeviceProperty(object):
     def parse(self, value):
         if not self.__writable:
             raise MTPError('ACCESS_DENIED')
-        self.__current = DevicePropertyCode.formats[self.__code].parse(value)
+        self.__current = DevicePropertyFormats[self.__code].parse(value)
 
     def build(self):
-        return DevicePropertyCode.formats[self.__code].build(self.__current)
+        return DevicePropertyFormats[self.__code].build(self.__current)
 
     def builddesc(self):
         return DevicePropertyDesc.build(dict(
@@ -79,7 +79,7 @@ class DeviceProperties(object):
             self.__props[arg[0]] = DeviceProperty(*arg)
 
     def supported(self):
-        return sorted(self.__props.keys(), key=lambda p: DevicePropertyCode.encoding[p])
+        return sorted(self.__props.keys(), key=lambda p: DevicePropertyCode.encmapping[p])
 
     def reset(self):
         for p in self.__props:
