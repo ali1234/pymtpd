@@ -1,4 +1,7 @@
-import os, stat, time
+import os, stat
+
+import logging
+logger = logging.getLogger(__name__)
 
 class Directory(object):
     def __init__(self, path):
@@ -80,6 +83,7 @@ class Gadget(object):
         del self.gadget.configs[config][function]
 
     def bind(self, udc):
+        logger.info('Binding to {}'.format(udc))
         self.gadget.UDC = udc
 
     def remove_gadget(self):
