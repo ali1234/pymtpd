@@ -25,6 +25,8 @@ Note
 
        sudo modprobe libcomposite
 
+6. Plug the Raspberry Pi into your PC.
+
 
 ## How to set up a PC to run it in loopback mode:
 
@@ -64,3 +66,9 @@ Note
 
    It shares the contents of /tmp/mtp (which will be created on start
    up.)
+
+## How to use it:
+
+    Open up a file manager and you should see an MTP (media player)
+    device.
+
