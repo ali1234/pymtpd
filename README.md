@@ -61,14 +61,13 @@ Note
 
     sudo ./pymtpd --udc <UDC>
 
-   UDC should be `dummy_udc.0` if you are running on a PC, or
-   `20980000.usb` if running on a Raspberry Pi Zero.
+UDC should be `dummy_udc.0` if you are running on a PC, or
+`20980000.usb` if running on a Raspberry Pi Zero.
 
-   It shares the contents of /tmp/mtp (which will be created on start
-   up.)
+It shares the contents of /tmp/mtp (which will be created on start up.)
 
 ## How to use it:
 
-    Open up a file manager and you should see an MTP (media player)
-    device.
+Open up a file manager and you should see an MTP (media player)
+device.
 
