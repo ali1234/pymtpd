@@ -1,5 +1,7 @@
 import itertools
 import logging
+import shutil
+
 logger = logging.getLogger(__name__)
 
 from construct import *
@@ -41,14 +43,12 @@ class Storage(object):
         logger.debug('Disconnect %s: %x, %s' % (type(self).__name__, self.storage_id, self.name))
 
     def build(self):
-        return StorageInfo.build(dict(max_capacity=self.capacity(), free_space=self.free_space(), volume_identifier=self.name,
+        total, free = self.capacity()
+        return StorageInfo.build(dict(max_capacity=total, free_space=free, volume_identifier=self.name,
                                       storage_description=self.name))
 
     def capacity(self):
-        return 1024*1024*16
-
-    def free_space(self):
-        return 1024*1024*5
+        return (0, 0)
 
     def handles(self, parent=0):
         return ()
@@ -65,6 +65,10 @@ class FilesystemStorage(Storage):
         self.hm = handlemanager
         self.wm = watchmanager
         self.root = FSRootObject(path, self)
+
+    def capacity(self):
+        total, used, free = shutil.disk_usage(str(self.root.path()))
+        return (total, free)
 
     def handles(self, recurse = False):
         return self.root.handles(recurse)
