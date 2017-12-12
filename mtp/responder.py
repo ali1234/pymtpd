@@ -262,10 +262,10 @@ class MTPResponder(object):
 #    def SET_OBJECT_REFERENCES(self, p, value):
 #        return ()
 
-    def respond(self, code, tx_id, p1=None, p2=None, p3=None, p4=None, p5=None):
+    def respond(self, code, tx_id, p1=0, p2=0, p3=0, p4=0, p5=0):
         args = locals()
         del args['self']
-        logger.debug(' '.join(str(x) for x in ('Response:', args['code'], args['p1'], args['p2'], args['p3'], args['p4'], args['p5'])))
+        logger.debug(' '.join(str(x) for x in ('Response:', args['code'], hex(args['p1']), hex(args['p2']), hex(args['p3']), hex(args['p4']), hex(args['p5']))))
         self.inep.write(MTPResponse.build(args))
 
     def handleOneOperation(self):
