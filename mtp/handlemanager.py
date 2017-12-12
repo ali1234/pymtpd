@@ -12,7 +12,7 @@ class HandleManager(object):
         self.counter = itertools.count(1)
         self.objects = {}
 
-    def register(self, obj, send_event=True, handle=None):
+    def register(self, obj, handle=None):
         if handle is None:
             handle = next(self.counter)
         elif handle in self.objects:
@@ -26,7 +26,7 @@ class HandleManager(object):
         self.objects[handle] = obj
         return handle
 
-    def unregister(self, obj, send_event=True):
+    def unregister(self, obj):
         try:
             handle = obj.handle
             del self.objects[handle]
