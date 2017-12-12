@@ -127,12 +127,12 @@ class MTPResponder(object):
         else:
             storage = self.sm[p.p1]
 
-        if p.p2 == 0xffffffff:
+        if p.p2 == 0xffffffff or p.p2 == 0:
             parent = storage.root
-        elif p.p2 == 0:
-            parent = storage.root
+            parent_handle = 0xffffffff
         else:
             parent = self.hm[p.p2]
+            parent_handle = parent.handle
             if parent.storage != storage:
                 logger.warning('SEND_OBJECT_INFO: parent handle is in a different storage. Continuing anyway.')
             if not parent.path().is_dir():
@@ -141,22 +141,27 @@ class MTPResponder(object):
         info = ObjectInfo.parse(data)
         if info.format == 'ASSOCIATION' and info.association_type == 'GENERIC_FOLDER':
             parent.path().mkdir(info.name)
-            parent.add_child(parent.path() / info.filename)
-        handle = self.hm.reserve_handle()
+            handle = parent.add_child(parent.path() / info.filename)
+        elif info.compressed_size == 0:
+            f = (parent.path() / info.filename).open('wb')
+            f.close()
+            handle = parent.add_child(parent.path() / info.filename)
+        else:
+            handle = self.hm.reserve_handle()
         self.object_info = (parent, info, handle)
-        return ()
+        return (parent.storage.id, parent_handle, handle)
 
     @operations.filereceiver
     def SEND_OBJECT(self, p):
         if self.object_info is None:
             raise MTPError('NO_VALID_OBJECT_INFO')
         (parent, info, handle) = self.object_info
-        if info.format == 'ASSOCIATION' and info.association_type == 'GENERIC_FOLDER':
+        if (info.format == 'ASSOCIATION' and info.association_type == 'GENERIC_FOLDER') or info.compressed_size == 0:
             f = open('/dev/null', 'wb')
         else:
             p = parent.path() / info.filename
             f = p.open('wb')
-            parent.add_child(p)
+            parent.add_child(p, handle)
         self.object_info = None
         return (f, ())
 
