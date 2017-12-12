@@ -84,13 +84,14 @@ class FSDirObject(FSObject):
         for fz in self.path().iterdir():
             self.add_child(fz)
 
-    def add_child(self, path):
+    def add_child(self, path, handle=None):
         if path.is_dir():
             obj = FSDirObject(path, self, self.storage)
         else:
             obj = FSObject(path, self, self.storage)
         self.children[obj.name] = obj
-        self.storage.hm.register(obj)
+        self.storage.hm.register(obj, handle)
+        return obj.handle
 
     def unwatch(self):
         self.storage.wm.unregister(self)
