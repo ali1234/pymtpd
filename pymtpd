@@ -83,6 +83,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='MTP Daemon.')
     parser.add_argument('--log-level', type=str, help='CRITICAL, ERROR, WARNING, INFO, DEBUG', default='WARN')
     parser.add_argument('--udc', type=str, help='UDC device. (dummy_udc.0)', default='dummy_udc.0')
+    parser.add_argument('-s', '--storage', action='append', nargs=2, metavar=('name','path'), help='Add storage.')
+    parser.add_argument('-n', '--name', type=str, help='MTP device name', default='Whizzle')
     args = parser.parse_args()
 
     numeric_level = getattr(logging, args.log_level.upper(), None)
@@ -91,7 +93,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=numeric_level)
 
     with MTPGadget(name='g1', vid='0x0430', pid='0xa4a2') as g:
-        with mtp.MTPFunction('/dev/mtp') as function:
+        with mtp.MTPFunction('/dev/mtp', args) as function:
 
             g.bind(args.udc)
 

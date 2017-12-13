@@ -15,7 +15,7 @@ from mtp.registry import Registry
 class MTPResponder(object):
     operations = Registry()
 
-    def __init__(self, outep, inep, intep, loop):
+    def __init__(self, outep, inep, intep, loop, args):
         self.outep = outep
         self.inep = inep
         self.intep = intep
@@ -25,7 +25,7 @@ class MTPResponder(object):
 
         self.session_id = None
         self.properties = DeviceProperties(
-            ('DEVICE_FRIENDLY_NAME', 'Whizzle'),
+            ('DEVICE_FRIENDLY_NAME', args.name),
             ('SYNCHRONIZATION_PARTNER', '', True),
         )
 
@@ -36,7 +36,8 @@ class MTPResponder(object):
         self.hm = HandleManager()
         self.sm = StorageManager(self.hm)
 
-        FilesystemStorage('Files', '/tmp/mtp', self.sm, self.hm, self.wm)
+        for s in args.storage:
+            FilesystemStorage(s[0], s[1], self.sm, self.hm, self.wm)
 
         self.loop.add_reader(self.wm, self.wm.dispatch)
 

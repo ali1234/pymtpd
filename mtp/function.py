@@ -10,7 +10,7 @@ FS_BULK_MAX_PACKET_SIZE = 64
 HS_BULK_MAX_PACKET_SIZE = 512
 
 class MTPFunction(functionfs.Function):
-    def __init__(self, path):
+    def __init__(self, path, args):
 
         INTERFACE_DESCRIPTOR = functionfs.getDescriptor(
             functionfs.USBInterfaceDescriptor,
@@ -106,6 +106,7 @@ class MTPFunction(functionfs.Function):
                 inep=self.inep,
                 intep=self.intep,
                 loop=self.loop,
+                args=args
             )
 
         except:
