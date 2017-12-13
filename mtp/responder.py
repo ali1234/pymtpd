@@ -134,19 +134,9 @@ class MTPResponder(object):
             parent = self.hm[p.p2]
             if parent.storage != storage:
                 logger.warning('SEND_OBJECT_INFO: parent handle is in a different storage. Continuing anyway.')
-            if not parent.path().is_dir():
-                raise MTPError('INVALID_PARENT_OBJECT')
 
         info = ObjectInfo.parse(data)
-        if info.format == 'ASSOCIATION' and info.association_type == 'GENERIC_FOLDER':
-            parent.path().mkdir(info.name)
-            handle = parent.add_child(parent.path() / info.filename)
-        elif info.compressed_size == 0:
-            f = (parent.path() / info.filename).open('wb')
-            f.close()
-            handle = parent.add_child(parent.path() / info.filename)
-        else:
-            handle = self.hm.reserve_handle()
+        handle = parent.create_or_reserve(info)
         self.object_info = (parent, info, handle)
         return (parent.storage.id, parent.handle_as_parent(), handle)
 

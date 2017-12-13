@@ -29,6 +29,9 @@ class FSObject(object):
     def unregister_children(self):
         pass
 
+    def create_or_reserve(self, info):
+        raise MTPError('INVALID_PARENT_HANDLE')
+
     def delete(self):
         self.unwatch()
         self.unregister_children()
@@ -105,6 +108,17 @@ class FSDirObject(FSObject):
         for c in self.children:
             self.hm.unregister(c)
             c.unregister_children()
+
+    def create_or_reserve(self, info):
+        if info.format == 'ASSOCIATION' and info.association_type == 'GENERIC_FOLDER':
+            self.path().mkdir(info.name)
+            return self.add_child(self.path() / info.filename)
+        elif info.compressed_size == 0:
+            f = (self.path() / info.filename).open('wb')
+            f.close()
+            return self.add_child(self.path() / info.filename)
+        else:
+            return self.storage.hm.reserve_handle()
 
     def truncate(self, offset):
         raise MTPError('INVALID_OBJECT_HANDLE') # TODO: is this the right error?
