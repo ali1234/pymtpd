@@ -4,7 +4,7 @@ import functionfs
 import functionfs.ch9
 
 from mtp.kaio import KAIOReader, KAIOWriter
-from .responder import MTPResponder
+from mtp.responder import MTPResponder
 
 FS_BULK_MAX_PACKET_SIZE = 64
 HS_BULK_MAX_PACKET_SIZE = 512
