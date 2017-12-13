@@ -130,10 +130,8 @@ class MTPResponder(object):
 
         if p.p2 == 0xffffffff or p.p2 == 0:
             parent = storage.root
-            parent_handle = 0xffffffff
         else:
             parent = self.hm[p.p2]
-            parent_handle = parent.handle
             if parent.storage != storage:
                 logger.warning('SEND_OBJECT_INFO: parent handle is in a different storage. Continuing anyway.')
             if not parent.path().is_dir():
@@ -150,7 +148,7 @@ class MTPResponder(object):
         else:
             handle = self.hm.reserve_handle()
         self.object_info = (parent, info, handle)
-        return (parent.storage.id, parent_handle, handle)
+        return (parent.storage.id, parent.handle_as_parent(), handle)
 
     @operations.filereceiver
     def SEND_OBJECT(self, p):

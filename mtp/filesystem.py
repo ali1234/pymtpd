@@ -48,6 +48,9 @@ class FSObject(object):
     def handles(self, recurse):
         raise MTPError('INVALID_PARENT_HANDLE')
 
+    def handle_as_parent(self):
+        return self.handle
+
     def build(self):
         path = self.path()
         stat = path.stat()
@@ -170,6 +173,9 @@ class FSRootObject(FSDirObject):
     def delete(self):
         logger.error('Cannot delete the storage root.')
         return
+
+    def handle_as_parent(self):
+        return 0xffffffff
 
     def inotify(self, event):
         if event.mask & (flags.ATTRIB | flags.MODIFY) and event.name == '':
