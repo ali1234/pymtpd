@@ -83,8 +83,6 @@ class FSDirObject(FSObject):
     def __init__(self, path, parent, storage):
         super().__init__(path, parent, storage)
         self.children = {}
-        self._predelete = set()
-        self._precreate = dict()
         self.storage.wm.register(self)
 
         for fz in self.path().iterdir():
