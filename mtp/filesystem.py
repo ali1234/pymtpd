@@ -15,6 +15,8 @@ from mtp.exceptions import MTPError
 
 class FSObject(object):
 
+    __slots__ = ('parent', 'storage', 'name', 'handle', 'wd')
+
     def __init__(self, path, parent, storage):
         self.parent = parent
         self.storage = storage
@@ -79,6 +81,8 @@ class FSObject(object):
 
 
 class FSDirObject(FSObject):
+
+    __slots__ = ('children',)
 
     def __init__(self, path, parent, storage):
         super().__init__(path, parent, storage)
@@ -173,6 +177,8 @@ class FSDirObject(FSObject):
 
 
 class FSRootObject(FSDirObject):
+
+    __slots__ = ('_path',)
 
     def __init__(self, path, storage):
         self.storage = storage
