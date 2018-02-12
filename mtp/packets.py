@@ -15,7 +15,7 @@ DataFormats = {x[0]: x[2] for x in mtp.constants.data_types}
 
 MTPOperation = Struct(
     'length' / Int32ul,
-    'type' / Const(ContainerType, 'OPERATION'),
+    'type' / Const('OPERATION', ContainerType),
     'code' / OperationCode,
     'tx_id' / Int32ul,
     'p1' / Default(Int32ul, 0),
@@ -26,8 +26,8 @@ MTPOperation = Struct(
 )
 
 MTPResponse = Struct(
-    'length' / Const(Int32ul, 32),
-    'type' / Const(ContainerType, 'RESPONSE'),
+    'length' / Const(32, Int32ul),
+    'type' / Const('RESPONSE', ContainerType),
     'code' / ResponseCode,
     'tx_id' / Int32ul,
     'p1' / Default(Int32ul, 0),
@@ -39,14 +39,14 @@ MTPResponse = Struct(
 
 MTPData = Struct(
     'length' / Int32ul,
-    'type' / Const(ContainerType, 'DATA'),
+    'type' / Const('DATA', ContainerType),
     'code' / OperationCode,
     'tx_id' / Int32ul,
 )
 
 MTPEvent = Struct(
-    'length' / Const(Int32ul, 24),
-    'type' / Const(ContainerType, 'EVENT'),
+    'length' / Const(24, Int32ul),
+    'type' / Const('EVENT', ContainerType),
     'code' / EventCode,
     'tx_id' / Default(Int32ul, 0),
     'p1' / Default(Int32ul, 0),

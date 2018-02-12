@@ -12,7 +12,7 @@ from mtp.packets import DataType, DataFormats
 FormatType = Enum(Int16ul, **dict(mtp.constants.format_types))
 
 ObjectPropertyCode = Enum(Int16ul, **{x[0]: x[1] for x in mtp.constants.object_property_codes})
-ObjectPropertyTypes = {x[0]: Const(DataType, x[2]) for x in mtp.constants.object_property_codes}
+ObjectPropertyTypes = {x[0]: Const(x[2], DataType) for x in mtp.constants.object_property_codes}
 ObjectPropertyFormats = {x[0]: DataFormats[x[2]] for x in mtp.constants.object_property_codes}
 
 AssociationType = Enum(Int16ul, **dict(mtp.constants.association_types))
@@ -47,8 +47,8 @@ ObjectPropertyDesc = Struct(
     'type' / Switch(this.code, ObjectPropertyTypes),
     'writable' / Default(Byte, True),
     'default' / Switch(this.code, ObjectPropertyFormats),
-    'group' / Const(Int32ul, 0),
-    'form' / Const(Byte, 0),
+    'group' / Const(0, Int32ul),
+    'form' / Const(0, Byte),
 )
 
 def builddesc(prop):

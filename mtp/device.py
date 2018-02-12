@@ -8,12 +8,12 @@ from mtp.adapters import MTPString
 
 
 DevicePropertyCode = Enum(Int16ul, **{x[0]: x[1] for x in constants.device_property_codes})
-DevicePropertyTypes = {x[0]: Const(DataType, x[2]) for x in constants.device_property_codes}
+DevicePropertyTypes = {x[0]: Const(x[2], DataType) for x in constants.device_property_codes}
 DevicePropertyFormats = {x[0]: DataFormats[x[2]] for x in constants.device_property_codes}
 
 DeviceInfo = Struct(
-    'standard_version' / Const(Int16ul, constants.VERSION),
-    'vendor_extension_id' / Const(Int32ul, 0x00000006),
+    'standard_version' / Const(constants.VERSION, Int16ul),
+    'vendor_extension_id' / Const(0x00000006, Int32ul),
     'version' / Default(Int16ul, 0),
     'extensions' / Default(MTPString, 'microsoft.com: 1.0; android.com: 1.0;'),
     'functional_mode' / Default(Int16ul, 0),
@@ -34,7 +34,7 @@ DevicePropertyDesc = Struct(
     'writable' / Default(Byte, False),
     'default' / Switch(this.code, DevicePropertyFormats),
     'current' / Switch(this.code, DevicePropertyFormats),
-    'form' / Const(Byte, 0),
+    'form' / Const(0, Byte),
 )
 
 
