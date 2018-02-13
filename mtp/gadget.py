@@ -68,10 +68,13 @@ CONFIGDIR = '/sys/kernel/config/usb_gadget/'
 #CONFIGDIR = '/tmp/cfs/'
 
 class Gadget(object):
-    def __init__(self, name, vid, pid):
+    def __init__(self, name, vid, pid, manufacturer, product, serialnumber):
         self.name = name
         self.vid = vid
         self.pid = pid
+        self.manufacturer = manufacturer
+        self.product = product
+        self.serialnumber = serialnumber
         self.gadget = Directory(CONFIGDIR)[self.name]
 
     def add_function_to_config(self, function, config):
