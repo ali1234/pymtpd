@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, subprocess, logging
+import os, subprocess, logging, argparse
 
 import mtp
 
@@ -70,9 +70,7 @@ class MTPGadget(mtp.Gadget):
 
 
 
-if __name__ == '__main__':
-
-    import argparse
+def main():
 
     # TODO: command line options / config file for the following:
     #  MTP device name
@@ -101,3 +99,7 @@ if __name__ == '__main__':
                 function.processEventsForever()
             except KeyboardInterrupt:
                 print("Shutting down")
+
+
+if __name__ == '__main__':
+    main()
