@@ -6,7 +6,7 @@ setup(
     version='0.1',
     author='Alistair Buxton',
     author_email='a.j.buxton@gmail.com',
-    url='http://github.com/ali1234/__main__.py',
+    url='http://github.com/ali1234/pymtpd',
     license='GPLv3+',
     platforms=['linux'],
     packages=['mtp'],
